@@ -1,8 +1,10 @@
 package net.sagebits.weatherlink.data;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.SocketException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Optional;
@@ -87,8 +89,7 @@ public class DataReader
 		}
 		
 		log.info("testing WLL address: {}:{}", address, port);
-		log.debug("test success - received: {}", new String(new URL("http://" + address + ":" + port + "/v1/current_conditions").openStream().readAllBytes(), 
-				StandardCharsets.UTF_8));
+		log.debug("test success - received: {}", readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions")));
 	}
 
 	/**
@@ -117,8 +118,7 @@ public class DataReader
 					try
 					{
 						log.debug("Requesting Live Data Stream");
-						String response = new String(new URL("http://" + address + ":" + port + "/v1/real_time?duration=10800").openStream().readAllBytes(), 
-								StandardCharsets.UTF_8);
+						String response = readBytes(new URL("http://" + address + ":" + port + "/v1/real_time?duration=10800"));
 						log.debug("Live request response: {}", response);
 						
 						JsonNode rootNode = mapper.readTree(response);
@@ -160,7 +160,7 @@ public class DataReader
 			//Full data read here
 			try
 			{
-				String data = new String(new URL("http://" + address + ":" + port + "/v1/current_conditions").openStream().readAllBytes());
+				String data = readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions"));
 				log.debug("Periodic Data: {}", data);
 				
 				JsonNode rootNode = mapper.readTree(data);
@@ -197,6 +197,27 @@ public class DataReader
 		}
 		ldl.stop();
 		ldl = null;
+	}
+	
+	public static String readBytes(URL url) throws IOException
+	{
+		InputStream is = null;
+		try
+		{
+			URLConnection con = url.openConnection();
+			con.setReadTimeout(1000);
+			con.setConnectTimeout(250);
+			con.connect();
+			is = con.getInputStream(); 
+			return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+		}
+		finally
+		{
+			if (is != null)
+			{
+				is.close();
+			}
+		}
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException, SQLException

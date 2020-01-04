@@ -68,20 +68,34 @@ public class ConditionsLive
 		}
 		
 		ts.set(timeStamp);
-		wind_speed_last.set(Float.parseFloat(Optional.ofNullable(conditionData.get("wind_speed_last").asText()).orElse("0")));
-		wind_dir_last.set(Float.parseFloat(Optional.ofNullable(conditionData.get("wind_dir_last").asText()).orElse("-1")));
-		rain_size.set(Integer.parseInt(Optional.ofNullable(conditionData.get("rain_size").asText()).orElse("0")));
-		rain_rate_last.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_rate_last").asText()).orElse("0")));
-		rain_15_min.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_15_min").asText()).orElse("0")));
-		rain_60_min.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_60_min").asText()).orElse("0")));
-		rain_24_hr.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_24_hr").asText()).orElse("0")));
-		rain_storm.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_storm").asText()).orElse("0")));
-		rain_storm_start_at.set(Long.parseLong(Optional.ofNullable(conditionData.get("rain_storm_start_at").asText()).orElse("0")) * 1000);
-		rainfall_daily.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rainfall_daily").asText()).orElse("0")));
-		rainfall_monthly.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rainfall_monthly").asText()).orElse("0")));
-		rainfall_year.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rainfall_year").asText()).orElse("0")));
-		wind_speed_hi_last_10_min.set(Float.parseFloat(Optional.ofNullable(conditionData.get("wind_speed_hi_last_10_min").asText()).orElse("0")));
-		wind_dir_at_hi_speed_last_10_min.set(Float.parseFloat(Optional.ofNullable(conditionData.get("wind_dir_at_hi_speed_last_10_min").asText()).orElse("-1")));
+		wind_speed_last.set(Float.parseFloat(Optional.ofNullable(conditionData.get("wind_speed_last").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		wind_dir_last.set(Float.parseFloat(Optional.ofNullable(conditionData.get("wind_dir_last").asText())
+				.map(text -> text.equals("null") ? "-1" : text).orElse("-1")));
+		rain_size.set(Integer.parseInt(Optional.ofNullable(conditionData.get("rain_size").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		rain_rate_last.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_rate_last").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		rain_15_min.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_15_min").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		rain_60_min.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_60_min").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		rain_24_hr.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_24_hr").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		rain_storm.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rain_storm").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		rain_storm_start_at.set(Long.parseLong(Optional.ofNullable(conditionData.get("rain_storm_start_at").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")) * 1000);
+		rainfall_daily.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rainfall_daily").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		rainfall_monthly.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rainfall_monthly").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		rainfall_year.set(Float.parseFloat(Optional.ofNullable(conditionData.get("rainfall_year").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		wind_speed_hi_last_10_min.set(Float.parseFloat(Optional.ofNullable(conditionData.get("wind_speed_hi_last_10_min").asText())
+				.map(text -> text.equals("null") ? "0" : text).orElse("0")));
+		wind_dir_at_hi_speed_last_10_min.set(Float.parseFloat(Optional.ofNullable(conditionData.get("wind_dir_at_hi_speed_last_10_min").asText())
+				.map(text -> text.equals("null") ? "-1" : text).orElse("-1")));
 	}
 
 	public String getLsid()

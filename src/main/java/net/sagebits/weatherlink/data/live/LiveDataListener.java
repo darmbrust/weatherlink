@@ -44,8 +44,14 @@ public class LiveDataListener
 				}
 				catch (IOException e)
 				{
+					//IO probably means our socket it somehow messed up, and not recoverable. 
+					//The hourly check thread will restart a new socket when it checks.
 					log.error("Error reading live data", e);
 					enable = false;
+				}
+				catch (Exception e)
+				{
+					log.error("Error parsing / reading live data", e);
 				}
 			}
 			
