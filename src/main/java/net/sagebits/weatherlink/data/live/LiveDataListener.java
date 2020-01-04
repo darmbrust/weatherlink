@@ -23,10 +23,11 @@ public class LiveDataListener
 	final ObjectMapper mapper = new ObjectMapper(factory);
 	private final Logger log = LogManager.getLogger();
 	boolean enable = true;
+	final DatagramSocket datagramSocket; 
 
 	public LiveDataListener(int port) throws SocketException
 	{
-		final DatagramSocket datagramSocket = new DatagramSocket(port);
+		datagramSocket = new DatagramSocket(port);
 		final byte[] buffer = new byte[1024];
 		final DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 		
@@ -44,10 +45,17 @@ public class LiveDataListener
 				}
 				catch (IOException e)
 				{
-					//IO probably means our socket it somehow messed up, and not recoverable. 
-					//The hourly check thread will restart a new socket when it checks.
-					log.error("Error reading live data", e);
-					enable = false;
+					if (!enable)
+					{
+						//be quiet
+					}
+					else
+					{
+						//IO probably means our socket it somehow messed up, and not recoverable. 
+						//The hourly check thread will restart a new socket when it checks.
+						log.error("Error reading live data", e);
+						enable = false;
+					}
 				}
 				catch (Exception e)
 				{
@@ -59,7 +67,6 @@ public class LiveDataListener
 			log.info("Live data listen thread ends");
 			
 		}, "LiveDataListen");
-		
 		t.start();
 		
 	}
@@ -67,6 +74,7 @@ public class LiveDataListener
 	public void stop()
 	{
 		enable = false;
+		datagramSocket.close();
 	}
 	
 	public boolean running()

@@ -182,6 +182,8 @@ public class DataReader
 
 	public void stopReading()
 	{
+		ldl.stop();
+		ldl = null;
 		if (timed != null)
 		{
 			timed.shutdownNow();
@@ -195,8 +197,14 @@ public class DataReader
 			}
 			timed = null;
 		}
-		ldl.stop();
-		ldl = null;
+		try
+		{
+			PeriodicData.getInstance().shutDown();
+		}
+		catch (SQLException e)
+		{
+			log.error("Error closing DB", e);
+		}
 	}
 	
 	public static String readBytes(URL url) throws IOException
@@ -224,7 +232,7 @@ public class DataReader
 	{
 		DataReader dr = new DataReader(Optional.empty());
 		dr.startReading(10, true);
-		Thread.sleep(30000);
+		Thread.sleep(8 * 60 * 60 * 1000);
 		dr.stopReading();
 		PeriodicData.getInstance().shutDown();
 	}

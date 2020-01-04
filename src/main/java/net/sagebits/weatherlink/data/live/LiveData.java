@@ -3,6 +3,7 @@ package net.sagebits.weatherlink.data.live;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
@@ -45,7 +46,7 @@ public class LiveData
 	
 	public WeatherLinkLive getLiveData(String weatherLinkLiveId)
 	{
-		return wllData.get(weatherLinkLiveId);
+		return wllData.get(StringUtils.isBlank(weatherLinkLiveId) ? wllData.keySet().iterator().next() : weatherLinkLiveId);
 	}
 	
 	protected void update(JsonNode data)

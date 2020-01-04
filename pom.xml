@@ -12,6 +12,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<log4j.version>2.12.1</log4j.version>
+		<fxml.version>13</fxml.version>
 	</properties>
 
 	<licenses>
@@ -66,7 +67,17 @@
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-controls</artifactId>
-			<version>13</version>
+			<version>${fxml.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-fxml</artifactId>
+			<version>${fxml.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>eu.hansolo</groupId>
+			<artifactId>Medusa</artifactId>
+			<version>11.2</version>
 		</dependency>
 		<dependency>
 			<groupId>net.straylightlabs</groupId>

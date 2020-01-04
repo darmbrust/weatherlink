@@ -4,12 +4,14 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,8 +27,9 @@ import net.sagebits.weatherlink.data.StoredDataTypes;
 public class PeriodicData
 {
 	private volatile static PeriodicData instance_;
-	private final Logger log = LogManager.getLogger();
+	private static final Logger log = LogManager.getLogger();
 	
+	private Consumer<Void> consumer;
 	
 	private final Connection db;
 	
@@ -124,7 +127,7 @@ public class PeriodicData
 		db.prepareStatement("CREATE INDEX IF NOT EXISTS wll_bar_index ON wll_bar (did, lsid, ts)").execute();
 	}
 	
-	public static PeriodicData getInstance() throws SQLException
+	public static PeriodicData getInstance()
 	{
 		if (instance_ == null)
 		{
@@ -132,7 +135,15 @@ public class PeriodicData
 			{
 				if (instance_ == null)
 				{
-					instance_ = new PeriodicData();
+					try
+					{
+						instance_ = new PeriodicData();
+					}
+					catch (SQLException e)
+					{
+						log.error("error setting up", e);
+						throw new RuntimeException(e);
+					}
 				}
 			}
 		}
@@ -157,6 +168,10 @@ public class PeriodicData
 			if (dst.equals("1"))
 			{
 				appendTable("iss", on, timeStamp, did);
+				if (consumer != null)
+				{
+					consumer.accept(null);
+				}
 			}
 			else if (dst.equals("2"))
 			{
@@ -222,9 +237,34 @@ public class PeriodicData
 		ps.execute();
 		log.debug("Appended table {} in {}ms",  tableName, (System.currentTimeMillis() - time));
 	}
+	
+	public void registerConsumer(Consumer<Void> consumer)
+	{
+		this.consumer = consumer;
+	}
+	
+	public Number getLatestData(StoredDataTypes dt)
+	{
+		try
+		{
+			PreparedStatement ps = db.prepareStatement("SELECT " + dt.name() + " FROM iss WHERE (did, lsid, ts) = (SELECT DID, LSID, MAX(ts) FROM iss " 
+					+ "WHERE DID='001D0A71180F' AND LSID = '279091')");
+			ResultSet rs = ps.executeQuery();
+			if (rs.next())
+			{
+				return rs.getFloat(dt.name());
+			}
+		}
+		catch (SQLException e)
+		{
+			log.error("unexpected");
+		}
+		return -1;
+	}
 
 	public void shutDown() throws SQLException
 	{
+		log.info("DB Shutdown requested");
 		db.close();
 	}
 }
