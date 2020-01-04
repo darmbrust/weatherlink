@@ -8,3 +8,4 @@ hs_err_pid*
 /.classpath
 /.project
 /weatherLinkData.mv.db
+/weatherLinkData.trace.db
