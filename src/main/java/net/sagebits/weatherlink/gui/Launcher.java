@@ -6,6 +6,6 @@ public class Launcher
 {
 	public static void main(String[] args)
 	{
-		Application.launch(WeatherLinkLive.class);
+		Application.launch(WeatherLinkLiveGUI.class);
 	}
 }

@@ -1,10 +1,15 @@
 package net.sagebits.weatherlink.data.live;
 
-import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Instance class to hold the most current live data at any given time.  Use this to get to a set of 
@@ -16,8 +21,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class LiveData
 {
 	private volatile static LiveData instance_;
+	private final Logger log = LogManager.getLogger();
 	
-	private HashMap<String, WeatherLinkLive> wllData = new HashMap<>(2);
+	//Map weatherLinkLive instances (by their did) to map of condition data (one per sensor id 'lsid') 
+	private ConcurrentHashMap<String, ConcurrentHashMap<String, ConditionsLive>> liveData_= new ConcurrentHashMap<>(2);
 	
 	private LiveData()
 	{
@@ -39,19 +46,37 @@ public class LiveData
 		return instance_;
 	}
 	
-	public Set<String> getWeatherLinkLiveIds()
+	public Set<String> getAllWllDeviceIds()
 	{
-		return wllData.keySet();
+		return liveData_.keySet();
 	}
 	
-	public WeatherLinkLive getLiveData(String weatherLinkLiveId)
+	public Set<String> getSensorIds(String weatherLinkLiveId)
 	{
-		return wllData.get(StringUtils.isBlank(weatherLinkLiveId) ? wllData.keySet().iterator().next() : weatherLinkLiveId);
+		return Optional.ofNullable(liveData_.get(weatherLinkLiveId)).map(table -> (Set<String>)table.keySet()).orElse(new HashSet<>());
+	}
+	
+	public ConditionsLive getLiveData(String weatherLinkLiveId, String sensorId)
+	{
+		ConcurrentHashMap<String, ConditionsLive> conditions = liveData_.computeIfAbsent(weatherLinkLiveId, keyAgain -> new ConcurrentHashMap<>(2));
+		return conditions.computeIfAbsent(sensorId, keyAgain -> new ConditionsLive(sensorId, null));
 	}
 	
 	protected void update(JsonNode data)
 	{
 		String did = Optional.ofNullable(data.get("did")).orElseThrow().asText();
-		wllData.computeIfAbsent(did, keyAgain -> new WeatherLinkLive(did)).update(data);
+		ConcurrentHashMap<String, ConditionsLive> conditions = liveData_.computeIfAbsent(did, keyAgain -> new ConcurrentHashMap<>(2));
+		
+		final long ts = Long.parseLong(Optional.ofNullable(data.get("ts")).orElseThrow().asText()) * 1000;
+		
+		ArrayNode conditionsData = Optional.ofNullable((ArrayNode) data.get("conditions")).orElseThrow();
+		Iterator<JsonNode> condition = conditionsData.elements();
+		while (condition.hasNext())
+		{
+			ObjectNode conditionData = (ObjectNode) condition.next();
+			final String lsid = Optional.ofNullable(conditionData.get("lsid")).orElseThrow().asText();
+			conditions.computeIfAbsent(lsid, keyAgain -> new ConditionsLive(lsid, conditionData)).update(ts, conditionData);
+		}
+		log.debug("Updated live data");
 	}
 }

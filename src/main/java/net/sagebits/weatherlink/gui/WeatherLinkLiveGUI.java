@@ -17,10 +17,10 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import net.sagebits.weatherlink.data.DataReader;
 
-public class WeatherLinkLive extends Application
+public class WeatherLinkLiveGUI extends Application
 {
 	private static Stage mainStage_;
-	private WeatherLinkLiveController wllc_;
+	private WeatherLinkLiveGUIController wllc_;
 	DataReader dr;
 
 	public static Logger logger = LogManager.getLogger();
@@ -40,7 +40,7 @@ public class WeatherLinkLive extends Application
 				try
 				{
 					FXMLLoader loader = new FXMLLoader();
-					Scene scene = new Scene((Parent) loader.load(WeatherLinkLive.class.getResourceAsStream("/fxml/gui.fxml")));
+					Scene scene = new Scene((Parent) loader.load(WeatherLinkLiveGUI.class.getResourceAsStream("/fxml/gui.fxml")));
 					mainStage_.setScene(scene);
 					mainStage_.setWidth(1024);
 					mainStage_.setHeight(768);

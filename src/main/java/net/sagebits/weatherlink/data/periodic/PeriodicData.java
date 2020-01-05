@@ -7,17 +7,21 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import net.sagebits.weatherlink.data.DataFetcher;
 import net.sagebits.weatherlink.data.StoredDataTypes;
+import net.sagebits.weatherlink.data.WeatherProperty;
 
 /**
  * Instance class to interface with the DB where we stuff each periodic read of the full data set.
@@ -28,8 +32,6 @@ public class PeriodicData
 {
 	private volatile static PeriodicData instance_;
 	private static final Logger log = LogManager.getLogger();
-	
-	private Consumer<Void> consumer;
 	
 	private final Connection db;
 	
@@ -168,10 +170,6 @@ public class PeriodicData
 			if (dst.equals("1"))
 			{
 				appendTable("iss", on, timeStamp, did);
-				if (consumer != null)
-				{
-					consumer.accept(null);
-				}
 			}
 			else if (dst.equals("2"))
 			{
@@ -201,6 +199,7 @@ public class PeriodicData
 		List<Entry<String, JsonNode>> valuesToSet = new ArrayList<>(20);
 		colNames.append("ts,did,");
 		valuePlaceholders.append("?,?,");
+		String lsid = null;
 		while (f.hasNext())
 		{
 			Entry<String, JsonNode> e = f.next();
@@ -213,6 +212,10 @@ public class PeriodicData
 			if (name.equals("data_structure_type"))
 			{
 				continue;
+			}
+			if (name.equals(StoredDataTypes.lsid.name()))
+			{
+				lsid = e.getValue().asText();
 			}
 			colNames.append(name);
 			colNames.append(",");
@@ -230,36 +233,150 @@ public class PeriodicData
 		int i = 1;
 		ps.setLong(i++, timeStamp);
 		ps.setString(i++, did);
+		HashMap<StoredDataTypes, Object> updatedData = new HashMap<>(valuesToSet.size());
 		for (Entry<String, JsonNode> jn : valuesToSet)
 		{
-			StoredDataTypes.match(jn.getKey()).intoPreparedStatement(jn.getValue(), i++, ps);
+			StoredDataTypes sdt = StoredDataTypes.match(jn.getKey());
+			Object newData = sdt.intoPreparedStatement(jn.getValue(), i++, ps);
+			updatedData.put(sdt, newData);
 		}
 		ps.execute();
+		if (lsid == null)
+		{
+			log.error("lsid not provided as part of conditions?");
+		}
+		else
+		{
+			DataFetcher.getInstance().update(updatedData, did, lsid, timeStamp);
+		}
 		log.debug("Appended table {} in {}ms",  tableName, (System.currentTimeMillis() - time));
 	}
 	
-	public void registerConsumer(Consumer<Void> consumer)
-	{
-		this.consumer = consumer;
-	}
-	
-	public Number getLatestData(StoredDataTypes dt)
+	/**
+	 * May return null
+	 */
+	public WeatherProperty getLatestData(String wllDeviceId, String sensorId, StoredDataTypes dt)
 	{
 		try
 		{
-			PreparedStatement ps = db.prepareStatement("SELECT " + dt.name() + " FROM iss WHERE (did, lsid, ts) = (SELECT DID, LSID, MAX(ts) FROM iss " 
-					+ "WHERE DID='001D0A71180F' AND LSID = '279091')");
+			PreparedStatement ps = db.prepareStatement("SELECT ts, " + dt.name() + " FROM " + dt.getTableName() 
+				+ " WHERE (did, lsid, ts) = (SELECT did, lsid, MAX(ts) FROM " + dt.getTableName() 
+					+ " WHERE did=? AND lsid = ?)");
+			ps.setString(1, wllDeviceId);
+			ps.setString(2, sensorId);
+			
 			ResultSet rs = ps.executeQuery();
 			if (rs.next())
 			{
-				return rs.getFloat(dt.name());
+				WeatherProperty wp = new WeatherProperty();
+				wp.set(rs.getObject(dt.name()));
+				wp.setTimeStamp(rs.getLong("ts"));
+				return wp;
 			}
 		}
 		catch (SQLException e)
 		{
-			log.error("unexpected");
+			log.error("unexpected", e);
 		}
-		return -1;
+		return null;
+	}
+	
+	public Set<String> getAllWeatherLinkLiveIds()
+	{
+		HashSet<String> results = new HashSet<>();
+		try
+		{
+			for (String table : new String[] {"iss", "soil", "wll_env", "wll_bar"})
+			{
+				PreparedStatement ps = db.prepareStatement("SELECT DISTINCT did from " + table); 
+				ResultSet rs = ps.executeQuery();
+				while (rs.next())
+				{
+					results.add(rs.getString("did"));
+				}
+				rs.close();
+				ps.close();
+			}
+			
+		}
+		catch (SQLException e)
+		{
+			log.error("unexpected problem reading tables", e);
+		}
+		return results;
+	}
+	
+	public Set<String> getAllWllDeviceIds()
+	{
+		HashSet<String> results = new HashSet<>();
+		try
+		{
+			for (String table : new String[] {"iss", "soil", "wll_env", "wll_bar"})
+			{
+				PreparedStatement ps = db.prepareStatement("SELECT DISTINCT did from " + table); 
+				ResultSet rs = ps.executeQuery();
+				while (rs.next())
+				{
+					results.add(rs.getString("did"));
+				}
+				rs.close();
+				ps.close();
+			}
+			
+		}
+		catch (SQLException e)
+		{
+			log.error("unexpected problem reading tables", e);
+		}
+		return results;
+	}
+	
+	public Set<String> getAllSensorIds(String wllDeviceId)
+	{
+		HashSet<String> results = new HashSet<>();
+		try
+		{
+			for (String table : new String[] {"iss", "soil", "wll_env", "wll_bar"})
+			{
+				PreparedStatement ps = db.prepareStatement("SELECT DISTINCT lsid from " + table + " WHERE did = ?");
+				ps.setString(1, wllDeviceId);
+				ResultSet rs = ps.executeQuery();
+				while (rs.next())
+				{
+					results.add(rs.getString("lsid"));
+				}
+				rs.close();
+				ps.close();
+			}
+			
+		}
+		catch (SQLException e)
+		{
+			log.error("unexpected problem reading tables", e);
+		}
+		return results;
+	}
+	
+	public Set<String> getSensorsFor(String wllDeviceId, StoredDataTypes sdt)
+	{
+		HashSet<String> results = new HashSet<>();
+		try
+		{
+			PreparedStatement ps = db.prepareStatement("SELECT DISTINCT lsid from " + sdt.getTableName() + " WHERE did = ?");
+			ps.setString(1, wllDeviceId);
+			ResultSet rs = ps.executeQuery();
+			while (rs.next())
+			{
+				results.add(rs.getString("lsid"));
+			}
+			rs.close();
+			ps.close();
+		}
+		catch (SQLException e)
+		{
+			log.error("unexpected problem reading tables", e);
+		}
+		return results;
 	}
 
 	public void shutDown() throws SQLException
