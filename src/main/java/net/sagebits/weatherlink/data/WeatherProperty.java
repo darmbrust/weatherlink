@@ -2,8 +2,11 @@ package net.sagebits.weatherlink.data;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
+import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 public class WeatherProperty extends SimpleObjectProperty<Object>
 {
@@ -14,18 +17,18 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 	{
 		timeStamp = 0;
 	}
-	
+
 	public WeatherProperty(int initial)
 	{
 		this();
 		setValue(initial);
 	}
-	
+
 	public void setTimeStamp(long timeStamp)
 	{
 		this.timeStamp = timeStamp;
 	}
-	
+
 	/**
 	 * Will return the bound timestamp, if bound
 	 */
@@ -33,23 +36,22 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 	{
 		return boundTo == null ? timeStamp : boundTo.getTimeStamp();
 	}
-	
+
 	public long getLocalTimeStamp()
 	{
 		return timeStamp;
 	}
 
 	/*
-	 * I'm not calling the super.bind or unbind, nor am I overriding isBound, as I want to hide this binding from the end users. 
+	 * I'm not calling the super.bind or unbind, nor am I overriding isBound, as I want to hide this binding from the end users.
 	 */
 
-	
 	@Override
 	public void bind(ObservableValue<? extends Object> newObservable)
 	{
 		if (newObservable instanceof WeatherProperty)
 		{
-			boundTo = (WeatherProperty)newObservable;
+			boundTo = (WeatherProperty) newObservable;
 			boundTo.addListener(new InvalidationListener()
 			{
 				@Override
@@ -64,7 +66,7 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 			throw new RuntimeException("Can only bind to my type");
 		}
 	}
-	
+
 	@Override
 	public void unbind()
 	{
@@ -85,4 +87,34 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 		}
 		return boundTo.get();
 	}
+
+	public DoubleBinding asDouble()
+	{
+		return new DoubleBinding()
+		{
+			{
+				super.bind(WeatherProperty.this);
+			}
+
+			@Override
+			public void dispose()
+			{
+				super.unbind(WeatherProperty.this);
+			}
+
+			@Override
+			protected double computeValue()
+			{
+				final Object value = WeatherProperty.this.get();
+				return (value == null) ? -1 : ((Number)value).doubleValue();
+			}
+
+			@Override
+			public ObservableList<ObservableValue<?>> getDependencies()
+			{
+				return FXCollections.<ObservableValue<?>> singletonObservableList(WeatherProperty.this);
+			}
+		};
+	}
+
 }

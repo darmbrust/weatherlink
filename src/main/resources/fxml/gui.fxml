@@ -9,10 +9,9 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 
-
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="445.0" prefWidth="605.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="net.sagebits.weatherlink.gui.WeatherLinkLiveGUIController">
+<BorderPane fx:id="bp" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="445.0" prefWidth="605.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="net.sagebits.weatherlink.gui.WeatherLinkLiveGUIController">
    <top>
-      <MenuBar BorderPane.alignment="CENTER">
+      <MenuBar fx:id="menuBar" BorderPane.alignment="CENTER">
         <menus>
           <Menu mnemonicParsing="false" text="File">
             <items>
@@ -33,7 +32,7 @@
       </MenuBar>
    </top>
    <center>
-      <FlowPane prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+      <FlowPane fx:id="topFlowPane" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
          <children>
             <Label fx:id="tempOut" text="tempOut">
                <FlowPane.margin>
@@ -51,7 +50,7 @@
    <bottom>
       <ScrollPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="221.0" prefWidth="605.0" BorderPane.alignment="CENTER">
          <content>
-            <FlowPane prefHeight="200.0" prefWidth="200.0" />
+            <FlowPane fx:id="bottomFlowPane" prefHeight="200.0" prefWidth="200.0" />
          </content>
       </ScrollPane>
    </bottom>
