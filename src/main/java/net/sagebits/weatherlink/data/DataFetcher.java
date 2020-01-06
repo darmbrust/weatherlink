@@ -1,7 +1,9 @@
 package net.sagebits.weatherlink.data;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
@@ -17,7 +19,7 @@ public class DataFetcher
 	
 	//Structure to store Properties for the most recent data entry of every periodic data item being followed.
 	//WLL did|lsid ->  populated properties
-	private ConcurrentHashMap<String, ConcurrentHashMap<StoredDataTypes, WeatherProperty>> liveData_= new ConcurrentHashMap<>(2);
+	private ConcurrentHashMap<String, ConcurrentHashMap<StoredDataTypes, WeatherProperty>> mostRecentData= new ConcurrentHashMap<>(2);
 	
 	private DataFetcher()
 	{
@@ -42,50 +44,44 @@ public class DataFetcher
 	/**
 	 * May return null, otherwise, returns a WeatherProperty, that may be represent PeriodicData, or it may be further bound to LiveData. 
 	 */
-	public WeatherProperty getDataFor(String wllDeviceId, String sensorId, StoredDataTypes sdt)
+	public Optional<WeatherProperty> getDataFor(String wllDeviceId, String sensorId, StoredDataTypes sdt)
 	{
-		ConcurrentHashMap<StoredDataTypes, WeatherProperty> data = liveData_.computeIfAbsent(wllDeviceId + "|" + sensorId, keyAgain -> new ConcurrentHashMap<>()); 
+		ConcurrentHashMap<StoredDataTypes, WeatherProperty> data = mostRecentData.computeIfAbsent(wllDeviceId + "|" + sensorId, keyAgain -> new ConcurrentHashMap<>()); 
 
 		log.debug("Data requested for {} from {} {}", sdt, wllDeviceId, sensorId);
 		
-		return data.computeIfAbsent(sdt, keyAgain -> {
+		return Optional.ofNullable(data.computeIfAbsent(sdt, keyAgain -> {
 			//we don't yet have data we are tracking for this element.  See if we have any data to populate with....
 			
 			//Try to read it from the DB
-			WeatherProperty readData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, sdt);
+			Optional<WeatherProperty> readData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, sdt);
 			
 			if (sdt.getLiveDataType() != null)
 			{
 				WeatherProperty liveProperty = LiveData.getInstance().getLiveData(wllDeviceId, sensorId).getValue(sdt.getLiveDataType());
-				if (readData == null && !(liveProperty.asString().get().equals("-1")))
+				if (readData.isEmpty() && !(liveProperty.asDouble().get() == (-100.0)))
 				{
 					//If the DB didn't have a data set, but we have a valid live data set, make a blank
-					readData = new WeatherProperty();
+					readData = Optional.of(new WeatherProperty(sdt.name()));
 				}
-				if (readData != null)
+				if (readData.isPresent())
 				{
-					readData.bind(liveProperty);
+					readData.get().bind(liveProperty);
 				}
 			}
-			return readData;
-		});
+			return readData.orElse(null);
+		}));
 		
 	}
 	
-	
-	public Set<String> getAllWllDeviceIds()
+	/**
+	 * @return All unique WeatherLinkLive IDs, with a set of sensor IDs tied to each.
+	 */
+	public HashSet<String>  getWeatherLinkDeviceIds()
 	{
-		Set<String> result = PeriodicData.getInstance().getAllWllDeviceIds();
+		HashSet<String> result = PeriodicData.getInstance().getWeatherLinkDeviceIds();
 		
 		result.addAll(LiveData.getInstance().getAllWllDeviceIds());
-		return result;
-	}
-	
-	public Set<String> getAllSensorIds(String wllDeviceId)
-	{
-		Set<String> result = PeriodicData.getInstance().getAllSensorIds(wllDeviceId);
-		
-		result.addAll(LiveData.getInstance().getSensorIds(wllDeviceId));
 		return result;
 	}
 	
@@ -102,17 +98,20 @@ public class DataFetcher
 
 	public void update(HashMap<StoredDataTypes, Object> updatedData, String wllDeviceId, String sensorId, long timeStamp)
 	{
-		ConcurrentHashMap<StoredDataTypes, WeatherProperty> data = liveData_.computeIfAbsent(wllDeviceId + "|" + sensorId, keyAgain -> new ConcurrentHashMap<>());
+		ConcurrentHashMap<StoredDataTypes, WeatherProperty> data = mostRecentData.computeIfAbsent(wllDeviceId + "|" + sensorId, keyAgain -> new ConcurrentHashMap<>());
 		
 		for (Entry<StoredDataTypes, Object> dataUpdate : updatedData.entrySet())
 		{
 			WeatherProperty wp = data.computeIfAbsent(dataUpdate.getKey(), keyAgain -> 
 			{
-				WeatherProperty readData = new WeatherProperty();
+				WeatherProperty readData = new WeatherProperty(dataUpdate.getKey().name());
 				if (dataUpdate.getKey().getLiveDataType() != null)
 				{
 					readData.bind(LiveData.getInstance().getLiveData(wllDeviceId, sensorId).getValue(dataUpdate.getKey().getLiveDataType()));
 				}
+				//Set the initial values, so they aren't blank prior to the platform runLater, below, on the initial create.
+				readData.setTimeStamp(timeStamp);
+				readData.set(dataUpdate.getValue());
 				return readData;
 				
 			});
@@ -122,7 +121,5 @@ public class DataFetcher
 				wp.set(dataUpdate.getValue());
 			});
 		}
-		
 	}
-	
 }

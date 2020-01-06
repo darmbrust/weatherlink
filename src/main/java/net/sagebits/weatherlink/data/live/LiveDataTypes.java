@@ -6,7 +6,7 @@ import javafx.application.Platform;
 import net.sagebits.weatherlink.data.WeatherProperty;
 
 /**
- * Everything in this class will return a -1 for its property value, if it has never been set, or if it was missing in the most recent set, 
+ * Everything in this class will return a -100 for its property value, if it has never been set, or if it was missing in the most recent set, 
  * for some reason.
  * 
  * @author <a href="mailto:daniel.armbrust.list@gmail.com">Dan Armbrust</a>
@@ -69,8 +69,8 @@ public enum LiveDataTypes
 			}
 			else
 			{
-				//Passed in data, but no value found.  Set to a -1
-				property.setValue(-1);
+				//Passed in data, but no value found.  Set to a -100
+				property.setValue(-100);
 			}
 			property.setTimeStamp(timeStamp);
 		});

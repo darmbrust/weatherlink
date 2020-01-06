@@ -3,8 +3,6 @@ package net.sagebits.weatherlink.data;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Hashtable;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import net.sagebits.weatherlink.data.live.LiveDataTypes;
 
@@ -178,6 +176,23 @@ public enum StoredDataTypes
 				ps.setBoolean(parameterIndex, bool);
 				return bool;
 			
+			default:
+				throw new RuntimeException("Unhandled type " + dataType);
+		}
+	}
+	
+	public boolean isNumeric()
+	{
+		switch (dataType)
+		{
+			case "BIGINT" : 
+			case "TINYINT" : 
+			case "REAL" : 
+				return true;
+			case "VARCHAR" : 
+			case "BOOLEAN" : 
+				return false;
+				
 			default:
 				throw new RuntimeException("Unhandled type " + dataType);
 		}

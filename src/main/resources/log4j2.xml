@@ -33,6 +33,6 @@
 
 		<!-- By default, all loggers in the system are set to ERROR or worse.  To enable more verbose logging
 			for a specific logger, or a logger package - define a 'logger' configuration as below, with the desired level. -->
-		<logger name="net.sagebits" level="TRACE" />
+		<logger name="net.sagebits" level="DEBUG" />
 	</Loggers>
 </Configuration>

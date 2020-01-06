@@ -39,7 +39,7 @@ public class LiveDataListener
 				{
 					datagramSocket.receive(packet);
 					String liveData = new String(buffer, 0, packet.getLength(), StandardCharsets.UTF_8);
-					log.debug("Live Data: {}", liveData);
+					log.trace("Live Data: {}", liveData);
 					JsonNode liveRootNode = mapper.readTree(liveData);
 					LiveData.getInstance().update(liveRootNode);
 				}

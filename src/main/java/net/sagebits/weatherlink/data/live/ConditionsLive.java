@@ -37,7 +37,7 @@ public class ConditionsLive
 
 		for (LiveDataTypes ldt : LiveDataTypes.values())
 		{
-			properties.put(ldt, new WeatherProperty(-1));
+			properties.put(ldt, new WeatherProperty(ldt.name(), -100));
 		}
 
 	}

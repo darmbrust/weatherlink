@@ -7,6 +7,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -229,152 +232,185 @@ public class PeriodicData
 			log.warn("Still processing data after shutdown?  Tossing");
 			return;
 		}
-		PreparedStatement ps = db.prepareStatement("INSERT INTO " + tableName + " (" + colNames.toString() + ") VALUES (" + valuePlaceholders.toString() + ")");
-		int i = 1;
-		ps.setLong(i++, timeStamp);
-		ps.setString(i++, did);
-		HashMap<StoredDataTypes, Object> updatedData = new HashMap<>(valuesToSet.size());
-		for (Entry<String, JsonNode> jn : valuesToSet)
+		try (PreparedStatement ps = db.prepareStatement("INSERT INTO " + tableName + " (" + colNames.toString() + ") VALUES (" + valuePlaceholders.toString() + ")"))
 		{
-			StoredDataTypes sdt = StoredDataTypes.match(jn.getKey());
-			Object newData = sdt.intoPreparedStatement(jn.getValue(), i++, ps);
-			updatedData.put(sdt, newData);
+			int i = 1;
+			ps.setLong(i++, timeStamp);
+			ps.setString(i++, did);
+			HashMap<StoredDataTypes, Object> updatedData = new HashMap<>(valuesToSet.size());
+			for (Entry<String, JsonNode> jn : valuesToSet)
+			{
+				StoredDataTypes sdt = StoredDataTypes.match(jn.getKey());
+				Object newData = sdt.intoPreparedStatement(jn.getValue(), i++, ps);
+				updatedData.put(sdt, newData);
+			}
+			ps.execute();
+			if (lsid == null)
+			{
+				log.error("lsid not provided as part of conditions?");
+			}
+			else
+			{
+				DataFetcher.getInstance().update(updatedData, did, lsid, timeStamp);
+			}
 		}
-		ps.execute();
-		if (lsid == null)
-		{
-			log.error("lsid not provided as part of conditions?");
-		}
-		else
-		{
-			DataFetcher.getInstance().update(updatedData, did, lsid, timeStamp);
-		}
-		log.debug("Appended table {} in {}ms",  tableName, (System.currentTimeMillis() - time));
+		log.trace("Appended table {} in {}ms",  tableName, (System.currentTimeMillis() - time));
 	}
 	
-	/**
-	 * May return null
-	 */
-	public WeatherProperty getLatestData(String wllDeviceId, String sensorId, StoredDataTypes dt)
+	public Optional<WeatherProperty> getLatestData(String wllDeviceId, String sensorId, StoredDataTypes dt)
 	{
-		try
+		long time = System.currentTimeMillis();
+		try (PreparedStatement ps = db.prepareStatement("SELECT o.ts, " + dt.name() + " FROM " + dt.getTableName() + " o"
+				+ " INNER JOIN (SELECT did, lsid, MAX(ts) as ts FROM " + dt.getTableName()
+				+ " WHERE did = ? and lsid = ? GROUP BY did, lsid) i"
+				+ " ON i.did = o.did AND i.lsid = o.lsid AND i.ts = o.ts"))
+//				+ " WHERE (did, lsid, ts) = (SELECT did, lsid, MAX(ts) FROM " + dt.getTableName() 
+//					+ " WHERE did=? AND lsid = ? GROUP BY did,lsid)"))
 		{
-			PreparedStatement ps = db.prepareStatement("SELECT ts, " + dt.name() + " FROM " + dt.getTableName() 
-				+ " WHERE (did, lsid, ts) = (SELECT did, lsid, MAX(ts) FROM " + dt.getTableName() 
-					+ " WHERE did=? AND lsid = ?)");
 			ps.setString(1, wllDeviceId);
 			ps.setString(2, sensorId);
 			
-			ResultSet rs = ps.executeQuery();
-			if (rs.next())
+			try (ResultSet rs = ps.executeQuery())
 			{
-				WeatherProperty wp = new WeatherProperty();
-				wp.set(rs.getObject(dt.name()));
-				wp.setTimeStamp(rs.getLong("ts"));
-				return wp;
+				if (rs.next())
+				{
+					WeatherProperty wp = new WeatherProperty(dt.name());
+					wp.set(rs.getObject(dt.name()));
+					wp.setTimeStamp(rs.getLong("ts"));
+					return Optional.of(wp);
+				}
 			}
 		}
 		catch (SQLException e)
 		{
 			log.error("unexpected", e);
 		}
-		return null;
+		finally
+		{
+			log.trace("latest data query for {} took {}ms", dt, System.currentTimeMillis() - time);
+		}
+		return Optional.empty();
 	}
 	
-	public Set<String> getAllWeatherLinkLiveIds()
+	public Optional<Float> getMaxForDay(String wllDeviceId, String sensorId, StoredDataTypes dt, Date day)
 	{
-		HashSet<String> results = new HashSet<>();
+		return getMinOrMinForDay(wllDeviceId, sensorId, dt, day, "MAX");
+	}
+	
+	public Optional<Float> getMinForDay(String wllDeviceId, String sensorId, StoredDataTypes dt, Date day)
+	{
+		return getMinOrMinForDay(wllDeviceId, sensorId, dt, day, "MIN");
+	}
+	
+	private Optional<Float> getMinOrMinForDay(String wllDeviceId, String sensorId, StoredDataTypes dt, Date day, String maxOrMin)
+	{
+		long time = System.currentTimeMillis();
+		if (!dt.isNumeric())
+		{
+			throw new RuntimeException("Can't get min on non-numeric type!");
+		}
 		try
 		{
-			for (String table : new String[] {"iss", "soil", "wll_env", "wll_bar"})
-			{
-				PreparedStatement ps = db.prepareStatement("SELECT DISTINCT did from " + table); 
-				ResultSet rs = ps.executeQuery();
-				while (rs.next())
-				{
-					results.add(rs.getString("did"));
-				}
-				rs.close();
-				ps.close();
-			}
+			// today    
+			Calendar date = new GregorianCalendar();
+			date.setTime(day);
+			// reset hour, minutes, seconds and millis
+			date.set(Calendar.HOUR_OF_DAY, 0);
+			date.set(Calendar.MINUTE, 0);
+			date.set(Calendar.SECOND, 0);
+			date.set(Calendar.MILLISECOND, 0);
 			
-		}
-		catch (SQLException e)
-		{
-			log.error("unexpected problem reading tables", e);
-		}
-		return results;
-	}
-	
-	public Set<String> getAllWllDeviceIds()
-	{
-		HashSet<String> results = new HashSet<>();
-		try
-		{
-			for (String table : new String[] {"iss", "soil", "wll_env", "wll_bar"})
-			{
-				PreparedStatement ps = db.prepareStatement("SELECT DISTINCT did from " + table); 
-				ResultSet rs = ps.executeQuery();
-				while (rs.next())
-				{
-					results.add(rs.getString("did"));
-				}
-				rs.close();
-				ps.close();
-			}
+			long start = date.getTimeInMillis();
+
+			// next day
+			date.add(Calendar.DAY_OF_MONTH, 1);
+			long end = date.getTimeInMillis();
 			
-		}
-		catch (SQLException e)
-		{
-			log.error("unexpected problem reading tables", e);
-		}
-		return results;
-	}
-	
-	public Set<String> getAllSensorIds(String wllDeviceId)
-	{
-		HashSet<String> results = new HashSet<>();
-		try
-		{
-			for (String table : new String[] {"iss", "soil", "wll_env", "wll_bar"})
+			try (PreparedStatement ps = db.prepareStatement("SELECT " + maxOrMin + "(" + dt.name() + ") AS " + dt.name() + " FROM " + dt.getTableName() 
+				+ " WHERE did= ? AND lsid = ? AND ts >= ? AND ts < ?"))
 			{
-				PreparedStatement ps = db.prepareStatement("SELECT DISTINCT lsid from " + table + " WHERE did = ?");
 				ps.setString(1, wllDeviceId);
-				ResultSet rs = ps.executeQuery();
-				while (rs.next())
+				ps.setString(2, sensorId);
+				ps.setLong(3, start);
+				ps.setLong(4, end);
+				
+				log.trace("Query: {}", ps.toString());
+				
+				try (ResultSet rs = ps.executeQuery())
 				{
-					results.add(rs.getString("lsid"));
+					if (rs.next())
+					{
+						return Optional.of(rs.getFloat(dt.name()));
+					}
 				}
-				rs.close();
-				ps.close();
+			}
+		}
+		catch (SQLException e)
+		{
+			log.error("unexpected", e);
+		}
+		finally
+		{
+			log.trace("find {} took {}ms", maxOrMin, System.currentTimeMillis() - time);
+		}
+		return Optional.empty();
+	}
+	
+	/**
+	 * @return All unique WeatherLinkLive IDs, with a set of sensor IDs tied to each.
+	 */
+	public HashSet<String> getWeatherLinkDeviceIds()
+	{
+		long time = System.currentTimeMillis();
+		HashSet<String> results = new HashSet<>();
+		try
+		{
+			for (String table : new String[] {"iss", "soil", "wll_env", "wll_bar"})
+			{
+				try (PreparedStatement ps = db.prepareStatement("SELECT DISTINCT did from " + table);
+						ResultSet rs = ps.executeQuery())
+				{
+					while (rs.next())
+					{
+						results.add(rs.getString("did"));
+					}
+				}
 			}
 			
 		}
 		catch (SQLException e)
 		{
 			log.error("unexpected problem reading tables", e);
+		}
+		finally
+		{
+			log.trace("WllDeviceIdQuery took {}ms", System.currentTimeMillis() - time);
 		}
 		return results;
 	}
 	
 	public Set<String> getSensorsFor(String wllDeviceId, StoredDataTypes sdt)
 	{
+		long time = System.currentTimeMillis();
 		HashSet<String> results = new HashSet<>();
-		try
+		try (PreparedStatement ps = db.prepareStatement("SELECT DISTINCT did, lsid from " + sdt.getTableName() + " WHERE did = ?"))
 		{
-			PreparedStatement ps = db.prepareStatement("SELECT DISTINCT lsid from " + sdt.getTableName() + " WHERE did = ?");
 			ps.setString(1, wllDeviceId);
-			ResultSet rs = ps.executeQuery();
-			while (rs.next())
+			try (ResultSet rs = ps.executeQuery())
 			{
-				results.add(rs.getString("lsid"));
+				while (rs.next())
+				{
+					results.add(rs.getString("lsid"));
+				}
 			}
-			rs.close();
-			ps.close();
 		}
 		catch (SQLException e)
 		{
 			log.error("unexpected problem reading tables", e);
+		}
+		finally
+		{
+			log.trace("SensorQueryFor took {}ms", System.currentTimeMillis() - time);
 		}
 		return results;
 	}

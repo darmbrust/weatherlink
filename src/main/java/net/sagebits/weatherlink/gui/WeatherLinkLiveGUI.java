@@ -1,7 +1,6 @@
 package net.sagebits.weatherlink.gui;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -15,20 +14,19 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import net.sagebits.weatherlink.data.DataReader;
 
 public class WeatherLinkLiveGUI extends Application
 {
 	private static Stage mainStage_;
 	private WeatherLinkLiveGUIController wllc_;
-	DataReader dr;
+	
 
 	public static Logger logger = LogManager.getLogger();
 
 	@Override
 	public void start(Stage primaryStage) throws Exception
 	{
-		logger.info("Startup of LoadTracker");
+		logger.info("Startup of Weather Link GUI");
 		mainStage_ = primaryStage;
 		finishSetUp();
 	}
@@ -42,15 +40,17 @@ public class WeatherLinkLiveGUI extends Application
 					FXMLLoader loader = new FXMLLoader();
 					Scene scene = new Scene((Parent) loader.load(WeatherLinkLiveGUI.class.getResourceAsStream("/fxml/gui.fxml")));
 					mainStage_.setScene(scene);
-					mainStage_.setWidth(1024);
-					mainStage_.setHeight(768);
+					mainStage_.sizeToScene();
+					mainStage_.setMinHeight(210);
+					mainStage_.setMinWidth(210);
 					wllc_ = loader.getController();
 					wllc_.finishInit(mainStage_);
 					//		mainStage_.getIcons().add(Images.APPLICATION.getImage());
 					mainStage_.setTitle("Weather Link Live GUI");
 					mainStage_.setOnCloseRequest(event -> 
 					{
-						dr.stopReading();
+						wllc_.shutdown();
+						
 						System.exit(0);
 					});
 					//		ltc_.finishInit();
@@ -58,11 +58,6 @@ public class WeatherLinkLiveGUI extends Application
 					Screen screen = Screen.getPrimary();
 
 					mainStage_.show();
-					
-					
-					dr = new DataReader(Optional.empty());
-					dr.startReading(10, true);
-					
 				}
 				catch (IOException e)
 				{

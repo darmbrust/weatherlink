@@ -119,7 +119,7 @@ public class DataReader
 					{
 						log.debug("Requesting Live Data Stream");
 						String response = readBytes(new URL("http://" + address + ":" + port + "/v1/real_time?duration=10800"));
-						log.debug("Live request response: {}", response);
+						log.trace("Live request response: {}", response);
 						
 						JsonNode rootNode = mapper.readTree(response);
 						if (!"null".equals(rootNode.get("error").asText()))
@@ -161,7 +161,7 @@ public class DataReader
 			try
 			{
 				String data = readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions"));
-				log.debug("Periodic Data: {}", data);
+				log.trace("Periodic Data: {}", data);
 				
 				JsonNode rootNode = mapper.readTree(data);
 				if (!"null".equals(rootNode.get("error").asText()))
@@ -170,6 +170,7 @@ public class DataReader
 				}
 				
 				PeriodicData.getInstance().append(rootNode.get("data"));
+				log.debug("Periodic data updated");
 				
 			}
 			catch (Exception e)

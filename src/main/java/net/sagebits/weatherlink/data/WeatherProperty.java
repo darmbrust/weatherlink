@@ -1,9 +1,10 @@
 package net.sagebits.weatherlink.data;
 
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
+import java.util.Objects;
+import org.apache.commons.math3.util.Precision;
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -13,14 +14,15 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 	private long timeStamp;
 	WeatherProperty boundTo;
 
-	public WeatherProperty()
+	public WeatherProperty(String name)
 	{
+		super(null, name);
 		timeStamp = 0;
 	}
 
-	public WeatherProperty(int initial)
+	public WeatherProperty(String name, int initial)
 	{
-		this();
+		this(name);
 		setValue(initial);
 	}
 
@@ -52,10 +54,10 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 		if (newObservable instanceof WeatherProperty)
 		{
 			boundTo = (WeatherProperty) newObservable;
-			boundTo.addListener(new InvalidationListener()
+			boundTo.addListener(new ChangeListener<>()
 			{
 				@Override
-				public void invalidated(Observable observable)
+				public void changed(ObservableValue<?> observable, Object oldValue, Object newValue)
 				{
 					fireValueChangedEvent();
 				}
@@ -76,7 +78,7 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 	@Override
 	public Object get()
 	{
-		if (boundTo == null || boundTo.asString().get().equals("-1"))
+		if (boundTo == null || boundTo.asDouble().get() == -100.0)
 		{
 			return super.get();
 		}
@@ -87,34 +89,58 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 		}
 		return boundTo.get();
 	}
+	
+	@Override
+	public void set(Object newValue)
+	{
+		if (newValue == null)
+		{
+			System.err.println("Setting a null??? " + this.getName());
+		}
+		if (!Objects.equals(super.get(), newValue))
+		{
+			super.set(newValue);
+		}
+	}
+	
+	private DoubleBinding db;
 
 	public DoubleBinding asDouble()
 	{
-		return new DoubleBinding()
+		if (db == null)
 		{
+			db = new DoubleBinding()
 			{
-				super.bind(WeatherProperty.this);
-			}
-
-			@Override
-			public void dispose()
-			{
-				super.unbind(WeatherProperty.this);
-			}
-
-			@Override
-			protected double computeValue()
-			{
-				final Object value = WeatherProperty.this.get();
-				return (value == null) ? -1 : ((Number)value).doubleValue();
-			}
-
-			@Override
-			public ObservableList<ObservableValue<?>> getDependencies()
-			{
-				return FXCollections.<ObservableValue<?>> singletonObservableList(WeatherProperty.this);
-			}
-		};
+				{
+					super.bind(WeatherProperty.this);
+				}
+	
+				@Override
+				public void dispose()
+				{
+					super.unbind(WeatherProperty.this);
+				}
+	
+				@Override
+				protected double computeValue()
+				{
+					final Object value = WeatherProperty.this.get();
+					if (value == null)
+					{
+						System.err.println("Why is value null for " + WeatherProperty.this.getName());
+						new Exception().printStackTrace();
+					}
+					return (value == null) ? -100 : Precision.round(((Number)value).doubleValue(), 1);
+				}
+	
+				@Override
+				public ObservableList<ObservableValue<?>> getDependencies()
+				{
+					return FXCollections.<ObservableValue<?>> singletonObservableList(WeatherProperty.this);
+				}
+			};
+		}
+		return db;
 	}
 
 }
