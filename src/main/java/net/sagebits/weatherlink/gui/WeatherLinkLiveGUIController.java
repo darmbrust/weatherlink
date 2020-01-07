@@ -48,7 +48,7 @@ import net.sagebits.weatherlink.data.periodic.PeriodicData;
 
 public class WeatherLinkLiveGUIController
 {
-	public static Logger log = LogManager.getLogger();
+	public static Logger log = LogManager.getLogger(WeatherLinkLiveGUIController.class);
 	
 	private DataReader dr;
 
@@ -308,8 +308,8 @@ public class WeatherLinkLiveGUIController
 	private Gauge buildQuarterWindGauge(String wllDeviceId, String sensorOutdoorId)
 	{
 		Marker dayMax = new Marker(0.0, "Day Max", Color.RED, MarkerType.STANDARD);
-		Marker tenMH = new Marker(0.0, "Ten Minute High", Color.CADETBLUE, MarkerType.STANDARD);
-		Marker twoMH = new Marker(0.0, "Two Minute High", Color.DARKVIOLET, MarkerType.STANDARD);
+		Marker tenMH = new Marker(0.0, "Ten Minute High", Color.CADETBLUE, MarkerType.TRIANGLE);
+		Marker twoMH = new Marker(0.0, "Two Minute High", Color.DARKVIOLET, MarkerType.TRIANGLE);
 		Marker tenMA = new Marker(0.0, "Ten Minute Average", Color.CADETBLUE, MarkerType.DOT);
 		Marker twoMA = new Marker(0.0, "Two Minute Average", Color.DARKVIOLET, MarkerType.DOT);
 		Marker oneMA = new Marker(0.0, "One Minute Average", Color.CORNFLOWERBLUE, MarkerType.DOT);
@@ -334,7 +334,7 @@ public class WeatherLinkLiveGUIController
 		gauge.valueProperty().bind(currentWind.asDouble());
 		
 		
-		Optional<Float> maxValue = PeriodicData.getInstance().getMaxForDay(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last, new Date());
+		Optional<Float> maxValue = PeriodicData.getInstance().getMaxForDay(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_2_min, new Date());
 
 		dayMax.setValue(Precision.round(maxValue.map(f -> (double) f).orElse(currentWind.asDouble().get()), 1));
 		
@@ -364,6 +364,16 @@ public class WeatherLinkLiveGUIController
 		
 		twoMH.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_2_min)
 				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_hi_last_2_min)).asDouble());
+		
+		twoMH.valueProperty().addListener(observable -> {
+			double twoMinMax = twoMH.valueProperty().get();
+			if (twoMinMax > dayMax.getValue())
+			{
+				dayMax.setValue(twoMinMax);
+			}
+			
+			gauge.setMaxValue(Math.max((twoMinMax + 5), 50));
+		});
 		
 		tenMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_10_min)
 				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_avg_last_10_min)).asDouble());
@@ -411,7 +421,7 @@ public class WeatherLinkLiveGUIController
 				.knobColor(Gauge.DARK_COLOR)
 				.needleShape(NeedleShape.FLAT)
 				.needleType(NeedleType.VARIOMETER)
-				.needleBehavior(NeedleBehavior.STANDARD)
+				.needleBehavior(NeedleBehavior.OPTIMIZED)
 				.tickLabelColor(Gauge.DARK_COLOR)
 				.animated(true)
 				.animationDuration(800)

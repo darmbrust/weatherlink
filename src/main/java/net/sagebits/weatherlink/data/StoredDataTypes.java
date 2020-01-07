@@ -78,7 +78,7 @@ public enum StoredDataTypes
 	bar_absolute("absolute pressure", "REAL", "raw bar sensor reading (inches)", "wll_bar"),
 	;
 	
-	//private static final Logger log = LogManager.getLogger();
+	//private static final Logger log = LogManager.getLogger(StoredDataTypes.class);
 	private String displayName;
 	private String dataType;
 	private String doc;

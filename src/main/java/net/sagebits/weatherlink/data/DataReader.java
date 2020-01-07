@@ -36,7 +36,7 @@ import net.straylightlabs.hola.sd.Service;
  */
 public class DataReader
 {
-	private final Logger log = LogManager.getLogger();
+	private final Logger log = LogManager.getLogger(DataReader.class);
 	private final String address;
 	private final int port;
 	
@@ -183,8 +183,11 @@ public class DataReader
 
 	public void stopReading()
 	{
-		ldl.stop();
-		ldl = null;
+		if (ldl != null)
+		{
+			ldl.stop();
+			ldl = null;
+		}
 		if (timed != null)
 		{
 			timed.shutdownNow();

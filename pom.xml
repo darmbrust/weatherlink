@@ -113,7 +113,7 @@
 						<configuration>
 							<archive>
 								<manifest>
-									<mainClass>net.sagebits.armbrustacres.loadTracker.gui.javafx.LoadTracker</mainClass>
+									<mainClass>net.sagebits.weatherlink.gui.WeatherLauncher</mainClass>
 								</manifest>
 							</archive>
 							<descriptorRefs>

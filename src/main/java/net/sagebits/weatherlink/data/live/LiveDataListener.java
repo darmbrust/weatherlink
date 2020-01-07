@@ -21,7 +21,7 @@ public class LiveDataListener
 {
 	final JsonFactory factory = new JsonFactory();
 	final ObjectMapper mapper = new ObjectMapper(factory);
-	private final Logger log = LogManager.getLogger();
+	private final Logger log = LogManager.getLogger(LiveDataListener.class);
 	boolean enable = true;
 	final DatagramSocket datagramSocket; 
 

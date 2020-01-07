@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class LiveData
 {
 	private volatile static LiveData instance_;
-	private final Logger log = LogManager.getLogger();
+	private final Logger log = LogManager.getLogger(LiveData.class);
 	
 	//Map weatherLinkLive instances (by their did) to map of condition data (one per sensor id 'lsid') 
 	private ConcurrentHashMap<String, ConcurrentHashMap<String, ConditionsLive>> liveData_= new ConcurrentHashMap<>(2);

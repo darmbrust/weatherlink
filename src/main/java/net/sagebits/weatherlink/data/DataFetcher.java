@@ -15,7 +15,7 @@ import net.sagebits.weatherlink.data.periodic.PeriodicData;
 public class DataFetcher
 {
 	private volatile static DataFetcher instance_;
-	private static final Logger log = LogManager.getLogger();
+	private static final Logger log = LogManager.getLogger(DataFetcher.class);
 	
 	//Structure to store Properties for the most recent data entry of every periodic data item being followed.
 	//WLL did|lsid ->  populated properties

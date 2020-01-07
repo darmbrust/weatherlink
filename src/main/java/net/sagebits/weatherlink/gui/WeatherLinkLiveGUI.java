@@ -21,7 +21,7 @@ public class WeatherLinkLiveGUI extends Application
 	private WeatherLinkLiveGUIController wllc_;
 	
 
-	public static Logger logger = LogManager.getLogger();
+	public static Logger logger = LogManager.getLogger(WeatherLinkLiveGUI.class);
 
 	@Override
 	public void start(Stage primaryStage) throws Exception

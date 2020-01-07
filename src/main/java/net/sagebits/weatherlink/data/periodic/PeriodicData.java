@@ -34,7 +34,7 @@ import net.sagebits.weatherlink.data.WeatherProperty;
 public class PeriodicData
 {
 	private volatile static PeriodicData instance_;
-	private static final Logger log = LogManager.getLogger();
+	private static final Logger log = LogManager.getLogger(PeriodicData.class);
 	
 	private final Connection db;
 	

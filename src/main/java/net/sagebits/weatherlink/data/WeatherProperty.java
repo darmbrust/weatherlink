@@ -15,7 +15,7 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 {
 	private long timeStamp;
 	WeatherProperty boundTo;
-	Logger log = LogManager.getLogger();
+	Logger log = LogManager.getLogger(WeatherProperty.class);
 	
 	public WeatherProperty(String name)
 	{

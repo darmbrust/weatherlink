@@ -24,7 +24,7 @@ public class ConditionsLive
 	private final String lsid;
 	private Character data_structure_type;
 	private Character txid;
-	private final Logger log = LogManager.getLogger();
+	private final Logger log = LogManager.getLogger(ConditionsLive.class);
 
 	private LongProperty ts = new SimpleLongProperty(0);
 
