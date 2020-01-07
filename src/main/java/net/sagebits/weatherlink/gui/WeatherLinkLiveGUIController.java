@@ -19,17 +19,23 @@ import org.apache.commons.math3.util.Precision;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import eu.hansolo.medusa.Gauge;
+import eu.hansolo.medusa.Gauge.KnobType;
+import eu.hansolo.medusa.Gauge.NeedleBehavior;
+import eu.hansolo.medusa.Gauge.NeedleShape;
 import eu.hansolo.medusa.Gauge.NeedleSize;
 import eu.hansolo.medusa.Gauge.NeedleType;
 import eu.hansolo.medusa.Gauge.SkinType;
 import eu.hansolo.medusa.GaugeBuilder;
 import eu.hansolo.medusa.Marker;
 import eu.hansolo.medusa.Marker.MarkerType;
+import eu.hansolo.medusa.Section;
 import eu.hansolo.medusa.TickLabelLocation;
+import eu.hansolo.medusa.TickLabelOrientation;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.paint.Color;
@@ -72,6 +78,7 @@ public class WeatherLinkLiveGUIController
 	public void finishInit(Stage mainStage)
 	{
 		mainStage_ = mainStage;
+		mainStage_.getIcons().add(new Image(WeatherLinkLiveGUIController.class.getResourceAsStream("/appIcon.png")));
 		
 		startMidnightTaskRunner();
 		
@@ -140,6 +147,27 @@ public class WeatherLinkLiveGUIController
 				{
 					log.error("Problem building Gauge", e);
 				}
+				
+				try
+				{
+					Gauge wg = buildWindDirectionGauge(wllDeviceId, sensorOutdoor);
+					Platform.runLater(() -> {
+						if (middleFlowPane == null)
+						{
+							middleFlowPane = new FlowPane();
+							bp.centerProperty().set(middleFlowPane);
+						}
+						//wg.setPadding(new Insets(20));
+						wg.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.22));
+						wg.prefHeightProperty().bind(wg.prefWidthProperty());
+						middleFlowPane.getChildren().add(wg);
+					});
+				}
+				catch (Exception e)
+				{
+					log.error("Problem building Gauge", e);
+				}
+				
 				try
 				{
 					Gauge t1 = buildTempGauge(wllDeviceId, sensorOutdoor, "Outside", StoredDataTypes.temp, StoredDataTypes.heat_index, 
@@ -226,7 +254,7 @@ public class WeatherLinkLiveGUIController
 			}	
 			
 			//This call should be safe, if we have a wllDeviceId
-			String sensorGarageBar = DataFetcher.getInstance().getSensorsFor(wllDeviceId, StoredDataTypes.bar_absolute).iterator().next();
+			//String sensorGarageBar = DataFetcher.getInstance().getSensorsFor(wllDeviceId, StoredDataTypes.bar_absolute).iterator().next();
 			log.debug("Gui init thread ends");
 		}, "gui-init");
 		guiInit.setDaemon(true);
@@ -254,6 +282,106 @@ public class WeatherLinkLiveGUIController
 
 		return gauge;
 	}
+	
+	private Gauge buildWindDirectionGauge(String wllDeviceId, String sensorId)
+	{
+		Section avgTen1 = new Section(0, 0, Color.LIGHTGRAY);
+		Section avgTen2 = new Section(0, 0, Color.LIGHTGRAY);
+		Section avgTwo1 = new Section(0, 0, Color.LIGHTCYAN);
+		Section avgTwo2 = new Section(0, 0, Color.LIGHTCYAN);
+		Section avgOne1 = new Section(0, 0, Color.LIGHTSLATEGREY);
+		Section avgOne2 = new Section(0, 0, Color.LIGHTSLATEGREY);
+		Gauge gauge = GaugeBuilder.create()
+				.skinType(SkinType.GAUGE)
+				.minSize(100, 100)
+				.borderPaint(Gauge.DARK_COLOR)
+				.minValue(0)
+				.maxValue(360)
+				.startAngle(180)
+				.angleRange(360)
+				.autoScale(false)
+				.decimals(0)
+				.minorTickMarksVisible(false)
+				.mediumTickMarksVisible(false)
+				.majorTickMarksVisible(true)
+				.valueVisible(false)
+				.customTickLabelsEnabled(true)
+				.tickLabelLocation(TickLabelLocation.INSIDE)
+				.tickLabelOrientation(TickLabelOrientation.ORTHOGONAL)
+				.minorTickSpace(1.5)
+				.majorTickSpace(22.5)
+				.customTickLabels("N", "", "NE", "", "E", "", "SE", "", "S",
+								  "", "SW", "", "W", "", "NW", "")
+				.customTickLabelFontSize(32)
+				.knobType(KnobType.STANDARD)
+				.knobColor(Gauge.DARK_COLOR)
+				.needleShape(NeedleShape.FLAT)
+				.needleType(NeedleType.VARIOMETER)
+				.needleBehavior(NeedleBehavior.STANDARD)
+				.tickLabelColor(Gauge.DARK_COLOR)
+				.animated(true)
+				.animationDuration(800)
+				.sections(avgTen1, avgTen2, avgTwo1, avgTwo2, avgOne1, avgOne2)
+				.sectionsVisible(true)
+				.build();
+
+		WeatherProperty windDirP = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_last)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_dir_last));
+		
+		WeatherProperty windDirAvgTen = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_10_min)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_dir_scalar_avg_last_10_min));
+		
+		WeatherProperty windDirAvgTwo = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_2_min)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_dir_scalar_avg_last_2_min));
+		
+		WeatherProperty windDirAvgOne = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_1_min)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_dir_scalar_avg_last_1_min));
+
+		gauge.valueProperty().bind(windDirP.asDouble());
+		
+		windDirAvgTen.addListener(change -> {
+				updateWindSection(windDirAvgTen, 20, avgTen1, avgTen2);
+		});
+		windDirAvgTwo.addListener(change -> {
+			updateWindSection(windDirAvgTwo, 14, avgTwo1, avgTwo2);
+		});
+		windDirAvgOne.addListener(change -> {
+			updateWindSection(windDirAvgOne, 8, avgOne1, avgOne2);
+		});
+		
+		updateWindSection(windDirAvgTen, 20, avgTen1, avgTen2);
+		updateWindSection(windDirAvgTwo, 14, avgTwo1, avgTwo2);
+		updateWindSection(windDirAvgOne, 8, avgOne1, avgOne2);
+		return gauge;
+	}
+	
+	private void updateWindSection (WeatherProperty wp, int halfSize, Section lowerHalf, Section upperHalf)
+	{
+		//We use 2 sections, so we can deal with the issues that occur near 360 and 0....
+		double start1 = wp.asDouble().get() - halfSize;
+		double end1 = start1 + halfSize;
+		double start2 = end1;
+		double end2 = start2 + halfSize;
+		
+		if (start1 < 0)
+		{
+			//plus, not minus, due to double negative
+			start1 = 360 + start1;
+			end1 = 360;
+			start2 = 0;
+		}
+		else if (end2 > 360)
+		{
+			end2 = end2 - 360;
+			start2 = 0;
+			end1 = 360;
+		}
+		
+		lowerHalf.setStart(start1);
+		lowerHalf.setStop(end1);
+		upperHalf.setStart(start2);
+		upperHalf.setStop(end2);
+	};
 	
 	private Gauge buildHumidityGauge(String wllDeviceId, String sensorId, StoredDataTypes humiditySensor, String title)
 	{

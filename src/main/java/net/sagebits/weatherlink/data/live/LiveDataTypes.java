@@ -2,8 +2,6 @@ package net.sagebits.weatherlink.data.live;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import javafx.application.Platform;
-import net.sagebits.weatherlink.data.WeatherProperty;
 
 /**
  * Everything in this class will return a -100 for its property value, if it has never been set, or if it was missing in the most recent set, 
@@ -43,36 +41,32 @@ public enum LiveDataTypes
 	}
 	
 	
-	public void updateProperty(WeatherProperty property, ObjectNode dataSource, long timeStamp)
+	public Number parseJson(ObjectNode dataSource)
 	{
-		Platform.runLater(() ->
+		JsonNode node = dataSource.get(this.name());
+		if (node != null && !"null".equals(node.asText()))
 		{
-			JsonNode node = dataSource.get(this.name());
-			if (node != null && !"null".equals(node.asText()))
+			if (this.dataType == 'f')
 			{
-				if (this.dataType == 'f')
-				{
-					property.setValue(Float.parseFloat(node.asText()));
-				}
-				else if (this.dataType == 'i')
-				{
-					property.setValue(Integer.parseInt(node.asText()));
-				}
-				else if (this.dataType == 'l')
-				{
-					property.setValue(Long.parseLong(node.asText()));
-				}
-				else
-				{
-					throw new RuntimeException("Unexpected data type '" + dataType + "'");
-				}
+				return Float.parseFloat(node.asText());
+			}
+			else if (this.dataType == 'i')
+			{
+				return Integer.parseInt(node.asText());
+			}
+			else if (this.dataType == 'l')
+			{
+				return Long.parseLong(node.asText());
 			}
 			else
 			{
-				//Passed in data, but no value found.  Set to a -100
-				property.setValue(-100);
+				throw new RuntimeException("Unexpected data type '" + dataType + "'");
 			}
-			property.setTimeStamp(timeStamp);
-		});
+		}
+		else
+		{
+			//Passed in data, but no value found.  Set to a -100
+			return Double.valueOf(-100.0);
+		}
 	}
 }

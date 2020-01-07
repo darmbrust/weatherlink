@@ -245,6 +245,18 @@ public class PeriodicData
 				updatedData.put(sdt, newData);
 			}
 			ps.execute();
+			
+			if (updatedData.containsKey(StoredDataTypes.wind_dir_last) &&
+					((Float)updatedData.get(StoredDataTypes.wind_dir_last)).floatValue() == 0.0 
+					&& ((Float)updatedData.get(StoredDataTypes.wind_speed_last)).floatValue() == 0.0)
+			{
+				//Its an oddity, that when the wind speed drops to 0, they also change the direction to 0, instead of leaving it alone.
+				//Don't update our property in this case (but go ahead and store the real data in the DB).  
+				//This is half of the solution (the periodic part), to keep the wind vane from swinging around when it is light and variable.
+				updatedData.remove(StoredDataTypes.wind_dir_last);
+				log.trace("Ignore 0 wind direction with 0 speed");
+			}
+			
 			if (lsid == null)
 			{
 				log.error("lsid not provided as part of conditions?");

@@ -2,6 +2,8 @@ package net.sagebits.weatherlink.data;
 
 import java.util.Objects;
 import org.apache.commons.math3.util.Precision;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -13,14 +15,15 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 {
 	private long timeStamp;
 	WeatherProperty boundTo;
-
+	Logger log = LogManager.getLogger();
+	
 	public WeatherProperty(String name)
 	{
 		super(null, name);
 		timeStamp = 0;
 	}
 
-	public WeatherProperty(String name, int initial)
+	public WeatherProperty(String name, double initial)
 	{
 		this(name);
 		setValue(initial);
@@ -95,7 +98,7 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 	{
 		if (newValue == null)
 		{
-			System.err.println("Setting a null??? " + this.getName());
+			log.error("Setting a null??? " + this.getName(), new Exception());
 		}
 		if (!Objects.equals(super.get(), newValue))
 		{
@@ -127,10 +130,10 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 					final Object value = WeatherProperty.this.get();
 					if (value == null)
 					{
-						System.err.println("Why is value null for " + WeatherProperty.this.getName());
-						new Exception().printStackTrace();
+						log.error("Why is value null for " + WeatherProperty.this.getName(), new Exception());
 					}
-					return (value == null) ? -100 : Precision.round(((Number)value).doubleValue(), 1);
+
+					return (value == null) ? -100.0 : Precision.round(((Number)value).doubleValue(), 1);
 				}
 	
 				@Override

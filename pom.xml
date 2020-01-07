@@ -21,6 +21,11 @@
 			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
 			<distribution>repo</distribution>
 		</license>
+		<license>
+			<name>Created Commons Attribution 3.0</name>
+			<comments>App Icon from  Joey Yakimowich-Payne </comments>
+			<url>https://www.iconfinder.com/iconsets/weather-29</url>
+		</license>
 	</licenses>
 
 	<dependencies>
