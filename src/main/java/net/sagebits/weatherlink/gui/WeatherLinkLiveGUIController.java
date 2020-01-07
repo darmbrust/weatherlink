@@ -327,6 +327,7 @@ public class WeatherLinkLiveGUIController
 				.knobColor(Gauge.DARK_COLOR)
 				.needleShape(NeedleShape.FLAT)
 				.needleType(NeedleType.VARIOMETER)
+				.needleSize(NeedleSize.THIN)
 				.minSize(100, 100).build();
 
 		WeatherProperty currentWind = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last)
@@ -420,7 +421,7 @@ public class WeatherLinkLiveGUIController
 				.knobType(KnobType.STANDARD)
 				.knobColor(Gauge.DARK_COLOR)
 				.needleShape(NeedleShape.FLAT)
-				.needleType(NeedleType.VARIOMETER)
+				.needleType(NeedleType.BIG)
 				.needleBehavior(NeedleBehavior.OPTIMIZED)
 				.tickLabelColor(Gauge.DARK_COLOR)
 				.animated(true)
