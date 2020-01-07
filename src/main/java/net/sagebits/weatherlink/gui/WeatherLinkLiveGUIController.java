@@ -129,16 +129,35 @@ public class WeatherLinkLiveGUIController
 			if (outdoorSensors.size() > 0)
 			{
 				sensorOutdoor = outdoorSensors.iterator().next();
+//				try
+//				{
+//					Gauge wg = buildWindGauge(wllDeviceId, sensorOutdoor);
+//					Platform.runLater(() -> {
+//						if (middleFlowPane == null)
+//						{
+//							middleFlowPane = new FlowPane();
+//							bp.centerProperty().set(middleFlowPane);
+//						}
+//						wg.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+//						wg.prefHeightProperty().bind(wg.prefWidthProperty());
+//						middleFlowPane.getChildren().add(wg);
+//					});
+//				}
+//				catch (Exception e)
+//				{
+//					log.error("Problem building Gauge", e);
+//				}
+				
 				try
 				{
-					Gauge wg = buildWindGauge(wllDeviceId, sensorOutdoor);
+					Gauge wg = buildQuarterWindGauge(wllDeviceId, sensorOutdoor);
 					Platform.runLater(() -> {
 						if (middleFlowPane == null)
 						{
 							middleFlowPane = new FlowPane();
 							bp.centerProperty().set(middleFlowPane);
 						}
-						wg.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+						wg.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.22));
 						wg.prefHeightProperty().bind(wg.prefWidthProperty());
 						middleFlowPane.getChildren().add(wg);
 					});
@@ -264,8 +283,11 @@ public class WeatherLinkLiveGUIController
 
 	private Gauge buildWindGauge(String wllDeviceId, String sensorOutdoorId)
 	{
-		Gauge gauge = GaugeBuilder.create().unit("Wind").decimals(1).minValue(0).maxValue(75).tickLabelDecimals(0).majorTickMarksVisible(true)
-				.tickLabelLocation(TickLabelLocation.INSIDE).areaTextVisible(true).thresholdVisible(true).threshold(0.0).animated(true).skinType(SkinType.DASHBOARD)
+		Gauge gauge = GaugeBuilder.create().unit("Wind")
+				.decimals(1).minValue(0).maxValue(75).tickLabelDecimals(0).majorTickMarksVisible(true)
+				.tickLabelLocation(TickLabelLocation.INSIDE)
+				.areaTextVisible(true).thresholdVisible(true).threshold(0.0)
+				.animated(true).skinType(SkinType.DASHBOARD)
 				.minSize(100, 100).build();
 		Tooltip t = new Tooltip("Current Wind Speed");
 		Tooltip.install(gauge, t);
@@ -279,6 +301,78 @@ public class WeatherLinkLiveGUIController
 		currentWind.addListener(observable -> t.setText("Current Wind Speed " + currentWind.asDouble().get() + "\n" + new Date(currentWind.getTimeStamp()).toString()));
 
 		tenMinHi.addListener(observable -> gauge.setThreshold(tenMinHi.asDouble().get()));
+
+		return gauge;
+	}
+	
+	private Gauge buildQuarterWindGauge(String wllDeviceId, String sensorOutdoorId)
+	{
+		Marker dayMax = new Marker(0.0, "Day Max", Color.RED, MarkerType.STANDARD);
+		Marker tenMH = new Marker(0.0, "Ten Minute High", Color.CADETBLUE, MarkerType.STANDARD);
+		Marker twoMH = new Marker(0.0, "Two Minute High", Color.DARKVIOLET, MarkerType.STANDARD);
+		Marker tenMA = new Marker(0.0, "Ten Minute Average", Color.CADETBLUE, MarkerType.DOT);
+		Marker twoMA = new Marker(0.0, "Two Minute Average", Color.DARKVIOLET, MarkerType.DOT);
+		Marker oneMA = new Marker(0.0, "One Minute Average", Color.CORNFLOWERBLUE, MarkerType.DOT);
+		
+		Gauge gauge = GaugeBuilder.create()
+				.unit("mph    ").title("Wind  ")
+				.animated(true)
+				.autoScale(true)
+				.minValue(0).maxValue(50.0)
+				.skinType(SkinType.QUARTER)
+				.decimals(1)
+				.markers(dayMax, tenMH, twoMH, tenMA, twoMA, oneMA)
+				.markersVisible(true)
+				.knobType(KnobType.STANDARD)
+				.knobColor(Gauge.DARK_COLOR)
+				.needleShape(NeedleShape.FLAT)
+				.needleType(NeedleType.VARIOMETER)
+				.minSize(100, 100).build();
+
+		WeatherProperty currentWind = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_last));
+		gauge.valueProperty().bind(currentWind.asDouble());
+		
+		
+		Optional<Float> maxValue = PeriodicData.getInstance().getMaxForDay(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last, new Date());
+
+		dayMax.setValue(Precision.round(maxValue.map(f -> (double) f).orElse(currentWind.asDouble().get()), 1));
+		
+		gauge.valueProperty().addListener(observable -> {
+			double current = currentWind.asDouble().get();
+			if (current > dayMax.getValue())
+			{
+				dayMax.setValue(current);
+			}
+			
+			gauge.setMaxValue(Math.max((current + 5), 50));
+		});
+		
+		addMidnightTask(() ->
+		{
+			Platform.runLater(() ->
+			{
+				double current = currentWind.asDouble().get();
+				dayMax.setValue(current);
+				gauge.setMaxValue(Math.max((current + 5), 50));
+			});
+			return null;
+		});
+		
+		tenMH.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_10_min)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_hi_last_10_min)).asDouble());
+		
+		twoMH.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_2_min)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_hi_last_2_min)).asDouble());
+		
+		tenMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_10_min)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_avg_last_10_min)).asDouble());
+		
+		twoMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_2_min)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_avg_last_2_min)).asDouble());
+		
+		oneMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_1_min)
+				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_avg_last_1_min)).asDouble());
 
 		return gauge;
 	}
