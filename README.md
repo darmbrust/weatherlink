@@ -1,6 +1,7 @@
 # weatherlink
 Data logger and Desktop GUI for Davis WeatherLink
 
+https://travis-ci.org/darmbrust/weatherlink.svg?branch=master
 
 
 # Useful Doc
