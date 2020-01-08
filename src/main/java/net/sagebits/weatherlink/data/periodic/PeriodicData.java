@@ -288,6 +288,11 @@ public class PeriodicData
 				{
 					WeatherProperty wp = new WeatherProperty(dt.name());
 					wp.set(rs.getObject(dt.name()));
+					if (rs.wasNull())
+					{
+						//Having issues with some data being null once in a while.
+						return Optional.empty();
+					}
 					wp.setTimeStamp(rs.getLong("ts"));
 					return Optional.of(wp);
 				}
@@ -366,6 +371,93 @@ public class PeriodicData
 			log.trace("find {} took {}ms", maxOrMin, System.currentTimeMillis() - time);
 		}
 		return Optional.empty();
+	}
+	
+	/**
+	 * Get all stored data for the specified data types.  All requested data elements need to come from the same table 
+	 * {@link StoredDataTypes#getTableName()} is the same for each.
+	 * 
+	 * Will return a list containing arrays where each array is sized one larger than the number of supplied data types.  
+	 * The first item in each array will be a Long, which represent the data timestamp.  Each of the next object corresponds to a 
+	 * requested dataType.
+	 * 
+	 * All arrays are the same length.  The list will be ordered from oldest to newest.
+	 * @throws SQLException 
+	 */
+	public List<Object[]> getDataForRange(String wllDeviceId, String sensorId, Long start, Optional<Long> end, StoredDataTypes ... dataTypes) throws SQLException
+	{
+		long time = System.currentTimeMillis();
+		try
+		{
+			if (dataTypes == null || dataTypes.length == 0)
+			{
+				throw new RuntimeException("Must supply at least one data type");
+			}
+			String tableName = null;
+			StringBuilder sb = new StringBuilder();
+			sb.append("SELECT ts, ");
+			for (StoredDataTypes sdt : dataTypes)
+			{
+				if (tableName == null)
+				{
+					tableName = sdt.getTableName();
+				}
+				else if (!tableName.equals(sdt.getTableName()))
+				{
+					throw new RuntimeException("All table names must be the same for requested data types");
+				}
+					
+				sb.append(sdt.name());
+				sb.append(", ");
+			}
+			
+			sb.setLength(sb.length() - 2);
+			
+			sb.append(" FROM ");
+			sb.append(tableName);
+			sb.append(" WHERE did = ? and lsid = ? AND ts >= ?");
+			if (end.isPresent())
+			{
+				sb.append(" AND ts < ?");
+			}
+			sb.append(" ORDER by ts");
+			
+			ArrayList<Object[]> results = new ArrayList<>();
+			
+			try (PreparedStatement ps = db.prepareStatement(sb.toString()))
+			{
+				ps.setString(1, wllDeviceId);
+				ps.setString(2, sensorId);
+				ps.setLong(3, start);
+				if (end.isPresent())
+				{
+					ps.setLong(4, end.get());
+				}
+				
+				log.trace("Query: {}", ps.toString());
+				
+				try (ResultSet rs = ps.executeQuery())
+				{
+					while (rs.next())
+					{
+						int i = 0;
+						Object[] rowResult = new Object[dataTypes.length + 1];
+						rowResult[i++] = rs.getLong("ts");
+						for (StoredDataTypes sdt : dataTypes)
+						{
+							rowResult[i++] = rs.getObject(sdt.name());
+						}
+						results.add(rowResult);
+					}
+				}
+			}
+			return results;
+		}
+		finally
+		{
+			log.trace("get data for range took {}ms", System.currentTimeMillis() - time);
+		}
+		
 	}
 	
 	/**

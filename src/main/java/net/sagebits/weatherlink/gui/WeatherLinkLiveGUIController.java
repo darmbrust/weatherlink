@@ -2,6 +2,9 @@ package net.sagebits.weatherlink.gui;
 
 import java.io.IOException;
 import java.net.URL;
+import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -13,6 +16,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import org.apache.commons.math3.util.Precision;
@@ -32,7 +38,15 @@ import eu.hansolo.medusa.Section;
 import eu.hansolo.medusa.TickLabelLocation;
 import eu.hansolo.medusa.TickLabelOrientation;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.chart.AreaChart;
+import javafx.scene.chart.Chart;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
+import javafx.scene.chart.XYChart.Series;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -40,6 +54,9 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.util.Pair;
+import javafx.util.StringConverter;
+import net.sagebits.weatherlink.data.DataCondenser;
 import net.sagebits.weatherlink.data.DataFetcher;
 import net.sagebits.weatherlink.data.DataReader;
 import net.sagebits.weatherlink.data.StoredDataTypes;
@@ -64,7 +81,9 @@ public class WeatherLinkLiveGUIController
 	
 	FlowPane middleFlowPane;
 	
-	ArrayList<Supplier<Void>> midnightTasks = new ArrayList<>();
+	private ArrayList<Supplier<Void>> midnightTasks = new ArrayList<>();
+	private ScheduledExecutorService periodicJobs = Executors.newScheduledThreadPool(2, r -> new Thread(r, "Periodic GUI Jobs"));
+	
 
 	@FXML
 	void initialize()
@@ -224,6 +243,44 @@ public class WeatherLinkLiveGUIController
 				{
 					log.error("Problem building Gauge", e);
 				}
+				
+				try
+				{
+					Chart chart = createTempChart(wllDeviceId, sensorOutdoor);
+					Platform.runLater(() -> {
+						if (middleFlowPane == null)
+						{
+							middleFlowPane = new FlowPane();
+							bp.centerProperty().set(middleFlowPane);
+						}
+						chart.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.48));
+						chart.prefHeightProperty().bind(chart.prefWidthProperty().divide(2.0));
+						middleFlowPane.getChildren().add(chart);
+					});
+				}
+				catch (Exception e)
+				{
+					log.error("Problem building temp Chart", e);
+				}
+				
+				try
+				{
+					Chart chart = createWindChart(wllDeviceId, sensorOutdoor);
+					Platform.runLater(() -> {
+						if (middleFlowPane == null)
+						{
+							middleFlowPane = new FlowPane();
+							bp.centerProperty().set(middleFlowPane);
+						}
+						chart.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.48));
+						chart.prefHeightProperty().bind(chart.prefWidthProperty().divide(2.0));
+						middleFlowPane.getChildren().add(chart);
+					});
+				}
+				catch (Exception e)
+				{
+					log.error("Problem building wind Chart", e);
+				}
 			}
 			else
 			{
@@ -273,7 +330,25 @@ public class WeatherLinkLiveGUIController
 			}	
 			
 			//This call should be safe, if we have a wllDeviceId
-			//String sensorGarageBar = DataFetcher.getInstance().getSensorsFor(wllDeviceId, StoredDataTypes.bar_absolute).iterator().next();
+			String sensorGarageBar = DataFetcher.getInstance().getSensorsFor(wllDeviceId, StoredDataTypes.bar_absolute).iterator().next();
+			try
+			{
+				Chart chart = createBarChart(wllDeviceId, sensorGarageBar);
+				Platform.runLater(() -> {
+					if (middleFlowPane == null)
+					{
+						middleFlowPane = new FlowPane();
+						bp.centerProperty().set(middleFlowPane);
+					}
+					chart.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+					chart.prefHeightProperty().bind(chart.prefWidthProperty());
+					middleFlowPane.getChildren().add(chart);
+				});
+			}
+			catch (Exception e)
+			{
+				log.error("Problem building wind Chart", e);
+			}
 			log.debug("Gui init thread ends");
 		}, "gui-init");
 		guiInit.setDaemon(true);
@@ -618,6 +693,204 @@ public class WeatherLinkLiveGUIController
 
 	}
 	
+	private XYChart<NumberAxis, NumberAxis> createWindChart(String wllDeviceId, String sensorId) throws SQLException
+	{
+		Series<Long, Double> series1 = new Series<>();
+		series1.setName("Average Wind Speed");
+		Series<Long, Double> series2 = new Series<>();
+		series2.setName("Peak Gust");
+		XYChart<NumberAxis, NumberAxis> chart = createHourChart(24, false, series1, series2); 
+		
+		Runnable updateData = () ->
+		{
+			try
+			{
+				log.debug("Updating wind chart");
+				long startTime = System.currentTimeMillis() - (24*60*60*1000);
+				
+				List<Object[]> windData = PeriodicData.getInstance().getDataForRange(wllDeviceId, sensorId, startTime, 
+						Optional.empty(), StoredDataTypes.wind_speed_avg_last_1_min, StoredDataTypes.wind_speed_hi_last_2_min);
+				
+				//If doing this as a stacked area chart, need to subtract the series 1 data from the series 2 data
+				ArrayList<Pair<Long, Double>> avgWindSpeeds = DataCondenser.averageEvery(15,  windData.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])));
+				ArrayList<Pair<Long, Double>> highWindSpeeds = DataCondenser.maxEvery(15,  windData.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[2])));
+
+				
+				Platform.runLater(() ->
+				{
+					series1.getData().clear();
+					for (Pair<Long, Double> point : avgWindSpeeds)
+					{
+						series1.getData().add(new XYChart.Data<>(point.getKey(), point.getValue()));
+					}
+					series2.getData().clear();
+					for (Pair<Long, Double> point : highWindSpeeds)
+					{
+						series2.getData().add(new XYChart.Data<>(point.getKey(), point.getValue()));
+					}
+					NumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
+					NumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
+				});
+			}
+			catch (Exception e)
+			{
+				log.error("Unexpected error updating chart series data", e);
+			}
+		};
+
+		periodicJobs.scheduleAtFixedRate(updateData, 0, 5, TimeUnit.MINUTES);
+		return chart;
+	}
+	
+	private XYChart<NumberAxis, NumberAxis> createTempChart(String wllDeviceId, String sensorId) throws SQLException
+	{
+		Series<Long, Double> series1 = new Series<>();
+		series1.setName("Outdoor Temp");
+		
+		XYChart<NumberAxis, NumberAxis> chart = createHourChart(24, true, series1); 
+		
+		Runnable updateData = () ->
+		{
+			try
+			{
+				log.debug("Updating outdoor temp chart");
+				long startTime =  System.currentTimeMillis() - (24*60*60*1000);
+				List<Object[]> data = PeriodicData.getInstance().getDataForRange(wllDeviceId, sensorId, startTime, 
+						Optional.empty(), StoredDataTypes.temp);
+				
+				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])));
+				
+				Platform.runLater(() ->
+				{
+					series1.getData().clear();
+					for (Pair<Long, Double> point : averaged)
+					{
+						series1.getData().add(new XYChart.Data<>(point.getKey(), point.getValue()));
+					}
+					NumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
+					NumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
+				});
+			}
+			catch (Exception e)
+			{
+				log.error("Unexpected error updating chart series data", e);
+			}
+		};
+
+		periodicJobs.scheduleAtFixedRate(updateData, 0, 5, TimeUnit.MINUTES);
+		return chart;
+	}
+	
+	private XYChart<NumberAxis, NumberAxis> createBarChart(String wllDeviceId, String sensorId) throws SQLException
+	{
+		Series<Long, Double> series1 = new Series<>();
+		series1.setName("Barometric Pressure");
+		XYChart<NumberAxis, NumberAxis> chart = createHourChart(12, true, series1); 
+		NumberAxis.class.cast(chart.getYAxis()).setForceZeroInRange(false);
+		NumberAxis.class.cast(chart.getYAxis()).setTickLabelFormatter(new StringConverter<Number>()
+		{
+			DecimalFormat df = new DecimalFormat("00.00");
+			@Override
+			public String toString(Number object)
+			{
+				
+				return df.format(object.doubleValue());
+			}
+
+			@Override
+			public Number fromString(String string)
+			{
+				throw new UnsupportedOperationException();
+			}
+		});;
+		
+		Runnable updateData = () ->
+		{
+			try
+			{
+				log.debug("Updating bar chart");
+				long startTime = System.currentTimeMillis() - (12*60*60*1000);
+				
+				List<Object[]> data = PeriodicData.getInstance().getDataForRange(wllDeviceId, sensorId, startTime, 
+						Optional.empty(), StoredDataTypes.bar_sea_level);
+				
+				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])));
+				
+				Platform.runLater(() ->
+				{
+					series1.getData().clear();
+					
+					for (Pair<Long, Double> point : averaged)
+					{
+						series1.getData().add(new XYChart.Data<>(point.getKey(), point.getValue()));
+					}
+					NumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
+					NumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
+				});
+			}
+			catch (Exception e)
+			{
+				log.error("Unexpected error updating chart series data", e);
+			}
+		};
+		
+		
+		
+		periodicJobs.scheduleAtFixedRate(updateData, 0, 5, TimeUnit.MINUTES);
+		return chart;
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SafeVarargs
+	private XYChart<NumberAxis, NumberAxis> createHourChart(int hourCount, boolean line, Series<Long, Double> ... seriesData)
+	{
+		NumberAxis xAxis = new NumberAxis();
+		xAxis.setTickLabelFormatter(new StringConverter<Number>()
+		{
+			SimpleDateFormat sdf = new SimpleDateFormat("h a");
+			
+			@Override
+			public String toString(Number object)
+			{
+				return sdf.format(new Date(object.longValue())).toLowerCase();
+			}
+
+			@Override
+			public Number fromString(String string)
+			{
+				throw new UnsupportedOperationException();
+			}
+		});
+		//One Hour
+		xAxis.setTickUnit(1*60*60*1000);
+		xAxis.setMinorTickCount(2);
+		xAxis.setAutoRanging(false);
+		xAxis.setUpperBound(System.currentTimeMillis());
+		xAxis.setLowerBound(System.currentTimeMillis() - (hourCount*60*60*1000));
+		
+		NumberAxis yAxis = new NumberAxis();
+		//Animation is buggy on data change
+		yAxis.setAnimated(false);
+		
+		ObservableList<XYChart.Series<Long, Double>> chartData = FXCollections.observableArrayList();
+		chartData.addAll(seriesData);
+		
+		if (line)
+		{
+			LineChart lc = new LineChart<>(xAxis, yAxis);
+			lc.setCreateSymbols(false);
+			lc.setData(chartData);
+			return lc;
+		}
+		else
+		{
+			AreaChart sac = new AreaChart<>(xAxis, yAxis);
+			sac.setCreateSymbols(false);
+			sac.setData(chartData);
+			return sac;
+		}
+	}
+
 	private void addMidnightTask(Supplier<Void> task)
 	{
 		synchronized (midnightTasks)
@@ -685,7 +958,7 @@ public class WeatherLinkLiveGUIController
 
 	public void shutdown()
 	{
+		periodicJobs.shutdownNow();
 		dr.stopReading();
-		
 	}
 }
