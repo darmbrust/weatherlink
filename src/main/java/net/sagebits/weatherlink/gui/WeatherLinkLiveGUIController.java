@@ -43,6 +43,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
@@ -56,8 +57,10 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Pair;
 import javafx.util.StringConverter;
@@ -220,7 +223,7 @@ public class WeatherLinkLiveGUIController
 					sp.getChildren().add(wdg);
 					sp.getChildren().add(wsg);
 					StackPane.setAlignment(wdg, Pos.CENTER);
-					wsg.widthProperty().addListener(change -> StackPane.setMargin(wdg, new Insets(wsg.getWidth() / 5.0, 0, 0, wsg.getWidth() / 6.5)));
+					wsg.widthProperty().addListener(change -> StackPane.setMargin(wdg, new Insets(wsg.getWidth() / 3.0, 0, 0, wsg.getWidth() / 6.5)));
 					
 					Platform.runLater(() -> {
 						if (middleFlowPane == null)
@@ -488,6 +491,16 @@ public class WeatherLinkLiveGUIController
 				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_last));
 		gauge.valueProperty().bind(currentWind.asDouble());
 		
+		//Hackish way to move the speed output
+		Pane p = (Pane)gauge.getChildrenUnmodifiable().get(0);
+		for (Node n : p.getChildren())
+		{
+			if (n instanceof Text && ((Text)n).getText().length() > 0)
+			{
+				gauge.widthProperty().addListener(change -> 
+					((Text)n).relocate(gauge.widthProperty().divide(2).multiply(-1).get(), gauge.widthProperty().divide(1.35).multiply(-1).get()));
+			}
+		}
 		
 		Optional<Float> maxValue = PeriodicData.getInstance().getMaxForDay(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_2_min, new Date());
 
