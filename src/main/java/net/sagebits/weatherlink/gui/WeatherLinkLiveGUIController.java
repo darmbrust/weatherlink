@@ -1004,10 +1004,16 @@ public class WeatherLinkLiveGUIController
 				
 				dayRain.getData().clear();
 				dayRain.getData().add(new XYChart.Data<>("Day", daily.get().asDouble().divide(100.0).get()));
+				Tooltip.install(dayRain.getData().get(0).getNode(), 
+						new Tooltip(dayRain.getData().get(0).getXValue() + ": " + dayRain.getData().get(0).getYValue().toString() + " in"));
 				monthRain.getData().clear();
 				monthRain.getData().add(new XYChart.Data<>("Month", monthly.get().asDouble().divide(100.0).get()));
+				Tooltip.install(monthRain.getData().get(0).getNode(), 
+						new Tooltip(monthRain.getData().get(0).getXValue() + ": " + monthRain.getData().get(0).getYValue().toString() + " in"));
 				yearRain.getData().clear();
 				yearRain.getData().add(new XYChart.Data<>("Year", yearly.get().asDouble().divide(100.0).get()));
+				Tooltip.install(yearRain.getData().get(0).getNode(), 
+						new Tooltip(yearRain.getData().get(0).getXValue() + ": " + yearRain.getData().get(0).getYValue().toString() + " in"));
 			}
 			catch (Exception e)
 			{
@@ -1039,6 +1045,7 @@ public class WeatherLinkLiveGUIController
 		Optional<WeatherProperty> sixtyMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_60_min);
 		Optional<WeatherProperty> twentyFourHourData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_24_hr);
 		Optional<WeatherProperty> stormData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm);
+		Optional<WeatherProperty> stormStartAt = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm_start_at);
 		Optional<WeatherProperty> rateData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_rate_last);
 		Optional<WeatherProperty> sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
 		if (!sizeAdjust.get().asString().get().equals("1"))
@@ -1053,14 +1060,26 @@ public class WeatherLinkLiveGUIController
 				log.debug("Updating current rain chart");
 				fifteenMin.getData().clear();
 				fifteenMin.getData().add(new XYChart.Data<>("15 Min", fifteenMinData.get().asDouble().divide(100.0).get()));
+				Tooltip.install(fifteenMin.getData().get(0).getNode(), 
+						new Tooltip("Rain in last " + fifteenMin.getData().get(0).getXValue() + ": " + fifteenMin.getData().get(0).getYValue().toString() + " in"));
 				sixtyMin.getData().clear();
 				sixtyMin.getData().add(new XYChart.Data<>("60 Min", sixtyMinData.get().asDouble().divide(100.0).get()));
+				Tooltip.install(sixtyMin.getData().get(0).getNode(), 
+						new Tooltip("Rain in last " + sixtyMin.getData().get(0).getXValue() + ": " + sixtyMin.getData().get(0).getYValue().toString() + " in"));
 				twentyFourHours.getData().clear();
 				twentyFourHours.getData().add(new XYChart.Data<>("24 Hrs", twentyFourHourData.get().asDouble().divide(100.0).get()));
+				Tooltip.install(twentyFourHours.getData().get(0).getNode(), 
+						new Tooltip("Rain in last " + twentyFourHours.getData().get(0).getXValue() + ": " + twentyFourHours.getData().get(0).getYValue().toString() 
+								+ " in"));
 				storm.getData().clear();
 				storm.getData().add(new XYChart.Data<>("Storm", stormData.get().asDouble().divide(100.0).get()));
+				Tooltip.install(storm.getData().get(0).getNode(), 
+						new Tooltip("Rain since " + (stormStartAt.isPresent() ? new Date((long)stormStartAt.get().asDouble().doubleValue()).toString() :"?") + ": "
+								+ storm.getData().get(0).getYValue().toString() + " in"));
 				rate.getData().clear();
 				rate.getData().add(new XYChart.Data<>("Rate", rateData.get().asDouble().divide(100.0).get()));
+				Tooltip.install(rate.getData().get(0).getNode(), 
+						new Tooltip("Rain rate: " + rate.getData().get(0).getYValue().toString() + " in per hour"));
 			}
 			catch (Exception e)
 			{
@@ -1115,6 +1134,8 @@ public class WeatherLinkLiveGUIController
 		bc.setLegendVisible(false);
 		bc.setVerticalGridLinesVisible(false);
 		bc.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");
+		bc.widthProperty().addListener(change -> bc.setBarGap(bc.widthProperty().divide(11).multiply(-1).get()));
+		bc.setCategoryGap(0);
 		return bc;
 	}
 
