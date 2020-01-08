@@ -98,7 +98,8 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 	{
 		if (newValue == null)
 		{
-			log.error("Setting a null??? " + this.getName(), new Exception());
+			//this may still happen, but the DB code should toss this entire property now
+			log.trace("Setting a null??? " + this.getName(), new Exception());
 		}
 		if (!Objects.equals(super.get(), newValue))
 		{
