@@ -42,6 +42,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.chart.AreaChart;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.Chart;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
@@ -144,7 +146,7 @@ public class WeatherLinkLiveGUIController
 			}
 			
 			Set<String> outdoorSensors = DataFetcher.getInstance().getSensorsFor(wllDeviceId, StoredDataTypes.temp);
-			String sensorOutdoor;
+			String sensorOutdoor = null;
 			if (outdoorSensors.size() > 0)
 			{
 				sensorOutdoor = outdoorSensors.iterator().next();
@@ -333,7 +335,7 @@ public class WeatherLinkLiveGUIController
 			String sensorGarageBar = DataFetcher.getInstance().getSensorsFor(wllDeviceId, StoredDataTypes.bar_absolute).iterator().next();
 			try
 			{
-				Chart chart = createBarChart(wllDeviceId, sensorGarageBar);
+				Chart chart = createBarometerChart(wllDeviceId, sensorGarageBar);
 				Platform.runLater(() -> {
 					if (middleFlowPane == null)
 					{
@@ -348,6 +350,46 @@ public class WeatherLinkLiveGUIController
 			catch (Exception e)
 			{
 				log.error("Problem building wind Chart", e);
+			}
+			
+			if (outdoorSensors.size() > 0)
+			{
+				try
+				{
+					Chart chart = createRainTotalsChart(wllDeviceId, sensorOutdoor);
+					Platform.runLater(() -> {
+						if (middleFlowPane == null)
+						{
+							middleFlowPane = new FlowPane();
+							bp.centerProperty().set(middleFlowPane);
+						}
+						chart.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+						chart.prefHeightProperty().bind(chart.prefWidthProperty());
+						middleFlowPane.getChildren().add(chart);
+					});
+				}
+				catch (Exception e)
+				{
+					log.error("Problem building wind Chart", e);
+				}
+				try
+				{
+					Chart chart = createRainCurrentChart(wllDeviceId, sensorOutdoor);
+					Platform.runLater(() -> {
+						if (middleFlowPane == null)
+						{
+							middleFlowPane = new FlowPane();
+							bp.centerProperty().set(middleFlowPane);
+						}
+						chart.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+						chart.prefHeightProperty().bind(chart.prefWidthProperty());
+						middleFlowPane.getChildren().add(chart);
+					});
+				}
+				catch (Exception e)
+				{
+					log.error("Problem building wind Chart", e);
+				}
 			}
 			log.debug("Gui init thread ends");
 		}, "gui-init");
@@ -781,7 +823,7 @@ public class WeatherLinkLiveGUIController
 		return chart;
 	}
 	
-	private XYChart<NumberAxis, NumberAxis> createBarChart(String wllDeviceId, String sensorId) throws SQLException
+	private XYChart<NumberAxis, NumberAxis> createBarometerChart(String wllDeviceId, String sensorId) throws SQLException
 	{
 		Series<Long, Double> series1 = new Series<>();
 		series1.setName("Barometric Pressure");
@@ -837,6 +879,8 @@ public class WeatherLinkLiveGUIController
 		
 		
 		periodicJobs.scheduleAtFixedRate(updateData, 0, 5, TimeUnit.MINUTES);
+		chart.setTitle("Barometric Pressure");
+		chart.setLegendVisible(false);
 		return chart;
 	}
 	
@@ -889,6 +933,140 @@ public class WeatherLinkLiveGUIController
 			sac.setData(chartData);
 			return sac;
 		}
+	}
+	
+	private XYChart<CategoryAxis, NumberAxis> createRainTotalsChart(String wllDeviceId, String sensorId) throws SQLException
+	{
+		Series<String, Double> dayRain = new Series<>();
+		Series<String, Double> monthRain = new Series<>();
+		Series<String, Double> yearRain = new Series<>();
+		
+		XYChart<CategoryAxis, NumberAxis> chart = createBarChart(dayRain, monthRain, yearRain);
+		Optional<WeatherProperty> daily = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_daily);
+		Optional<WeatherProperty> monthly = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_monthly);
+		Optional<WeatherProperty> yearly = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_year);
+		Optional<WeatherProperty> sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
+		
+		if (!sizeAdjust.get().asString().get().equals("1"))
+		{
+			log.error("Unsupported rain transformation for {}", sizeAdjust.get().asString().get());
+		}
+		
+		Runnable updateData = () ->
+		{
+			try
+			{
+				log.debug("Updating rain totals chart");
+				
+				dayRain.getData().clear();
+				dayRain.getData().add(new XYChart.Data<>("Day", daily.get().asDouble().divide(100.0).get()));
+				monthRain.getData().clear();
+				monthRain.getData().add(new XYChart.Data<>("Month", monthly.get().asDouble().divide(100.0).get()));
+				yearRain.getData().clear();
+				yearRain.getData().add(new XYChart.Data<>("Year", yearly.get().asDouble().divide(100.0).get()));
+			}
+			catch (Exception e)
+			{
+				log.error("Unexpected error updating chart series data", e);
+			}
+		};
+
+		updateData.run();
+		daily.get().addListener(change -> updateData.run());
+		monthly.get().addListener(change -> updateData.run());
+		yearly.get().addListener(change -> updateData.run());
+		chart.setTitle("Rain Totals");
+		return chart;
+	}
+	
+	private XYChart<CategoryAxis, NumberAxis> createRainCurrentChart(String wllDeviceId, String sensorId) throws SQLException
+	{
+		Series<String, Double> fifteenMin = new Series<>();
+		Series<String, Double> sixtyMin = new Series<>();
+		Series<String, Double> twentyFourHours = new Series<>();
+		Series<String, Double> storm = new Series<>();
+		Series<String, Double> rate = new Series<>();
+		
+		XYChart<CategoryAxis, NumberAxis> chart = createBarChart(fifteenMin, sixtyMin, twentyFourHours, storm, rate);
+		
+		Optional<WeatherProperty> fifteenMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_15_min);
+		Optional<WeatherProperty> sixtyMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_60_min);
+		Optional<WeatherProperty> twentyFourHourData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_24_hr);
+		Optional<WeatherProperty> stormData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm);
+		Optional<WeatherProperty> rateData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_rate_last);
+		Optional<WeatherProperty> sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
+		if (!sizeAdjust.get().asString().get().equals("1"))
+		{
+			log.error("Unsupported rain transformation for {}", sizeAdjust.get().asString().get());
+		}
+		
+		Runnable updateData = () ->
+		{
+			try
+			{
+				log.debug("Updating current rain chart");
+				fifteenMin.getData().clear();
+				fifteenMin.getData().add(new XYChart.Data<>("15 Min", fifteenMinData.get().asDouble().divide(100.0).get()));
+				sixtyMin.getData().clear();
+				sixtyMin.getData().add(new XYChart.Data<>("60 Min", sixtyMinData.get().asDouble().divide(100.0).get()));
+				twentyFourHours.getData().clear();
+				twentyFourHours.getData().add(new XYChart.Data<>("24 Hrs", twentyFourHourData.get().asDouble().divide(100.0).get()));
+				storm.getData().clear();
+				storm.getData().add(new XYChart.Data<>("Storm", stormData.get().asDouble().divide(100.0).get()));
+				rate.getData().clear();
+				rate.getData().add(new XYChart.Data<>("Rate", rateData.get().asDouble().divide(100.0).get()));
+			}
+			catch (Exception e)
+			{
+				log.error("Unexpected error updating chart series data", e);
+			}
+		};
+		
+		//TODO maybe make each of these just update its series, instead of all, have to see if its a problem
+		updateData.run();
+		fifteenMinData.get().addListener(change -> updateData.run());
+		sixtyMinData.get().addListener(change -> updateData.run());
+		twentyFourHourData.get().addListener(change -> updateData.run());
+		stormData.get().addListener(change -> updateData.run());
+		rateData.get().addListener(change -> updateData.run());
+		
+		chart.setTitle("Current Rain");
+		return chart;
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SafeVarargs
+	private XYChart<CategoryAxis, NumberAxis> createBarChart(Series<String, Double> ... seriesData)
+	{
+		CategoryAxis xAxis = new CategoryAxis();
+		NumberAxis yAxis = new NumberAxis();
+		//Animation is buggy on data change
+		yAxis.setAnimated(false);
+		yAxis.setTickLabelFormatter(new StringConverter<Number>()
+		{
+			DecimalFormat df = new DecimalFormat("#0.00");
+			
+			@Override
+			public String toString(Number object)
+			{
+				return df.format(object.doubleValue());
+			}
+
+			@Override
+			public Number fromString(String string)
+			{
+				throw new UnsupportedOperationException();
+			}
+		});
+		
+		ObservableList<XYChart.Series<String, Double>> chartData = FXCollections.observableArrayList();
+		chartData.addAll(seriesData);
+
+		BarChart bc = new BarChart<>(xAxis, yAxis);
+		bc.setData(chartData);
+		bc.setLegendVisible(false);
+		bc.setVerticalGridLinesVisible(false);
+		return bc;
 	}
 
 	private void addMidnightTask(Supplier<Void> task)
