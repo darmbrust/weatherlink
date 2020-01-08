@@ -41,6 +41,8 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
@@ -54,6 +56,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Pair;
@@ -169,18 +172,69 @@ public class WeatherLinkLiveGUIController
 //					log.error("Problem building Gauge", e);
 //				}
 				
+//				try
+//				{
+//					Gauge wg = buildQuarterWindGauge(wllDeviceId, sensorOutdoor);
+//					Platform.runLater(() -> {
+//						if (middleFlowPane == null)
+//						{
+//							middleFlowPane = new FlowPane();
+//							bp.centerProperty().set(middleFlowPane);
+//						}
+//						wg.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.22));
+//						wg.prefHeightProperty().bind(wg.prefWidthProperty());
+//						middleFlowPane.getChildren().add(wg);
+//					});
+//				}
+//				catch (Exception e)
+//				{
+//					log.error("Problem building Gauge", e);
+//				}
+//				
+//				try
+//				{
+//					Gauge wg = buildWindDirectionGauge(wllDeviceId, sensorOutdoor);
+//					Platform.runLater(() -> {
+//						if (middleFlowPane == null)
+//						{
+//							middleFlowPane = new FlowPane();
+//							bp.centerProperty().set(middleFlowPane);
+//						}
+//						//wg.setPadding(new Insets(20));
+//						wg.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.22));
+//						wg.prefHeightProperty().bind(wg.prefWidthProperty());
+//						middleFlowPane.getChildren().add(wg);
+//					});
+//				}
+//				catch (Exception e)
+//				{
+//					log.error("Problem building Gauge", e);
+//				}
+				
 				try
 				{
-					Gauge wg = buildQuarterWindGauge(wllDeviceId, sensorOutdoor);
+					Gauge wsg = buildQuarterWindGauge(wllDeviceId, sensorOutdoor);
+					Gauge wdg = buildWindDirectionGauge(wllDeviceId, sensorOutdoor);
+					
+					StackPane sp = new StackPane();
+					sp.getChildren().add(wdg);
+					sp.getChildren().add(wsg);
+					StackPane.setAlignment(wdg, Pos.CENTER);
+					wsg.widthProperty().addListener(change -> StackPane.setMargin(wdg, new Insets(wsg.getWidth() / 5.0, 0, 0, wsg.getWidth() / 6.5)));
+					
 					Platform.runLater(() -> {
 						if (middleFlowPane == null)
 						{
 							middleFlowPane = new FlowPane();
 							bp.centerProperty().set(middleFlowPane);
 						}
-						wg.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.22));
-						wg.prefHeightProperty().bind(wg.prefWidthProperty());
-						middleFlowPane.getChildren().add(wg);
+						sp.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+						sp.prefHeightProperty().bind(sp.prefWidthProperty());
+						wdg.prefWidthProperty().bind(wsg.widthProperty().multiply(0.40));
+						wdg.prefHeightProperty().bind(wdg.widthProperty());
+						wdg.maxWidthProperty().bind(wdg.prefWidthProperty());
+						wdg.maxHeightProperty().bind(wdg.prefHeightProperty());
+						middleFlowPane.getChildren().add(sp);
 					});
 				}
 				catch (Exception e)
@@ -188,25 +242,7 @@ public class WeatherLinkLiveGUIController
 					log.error("Problem building Gauge", e);
 				}
 				
-				try
-				{
-					Gauge wg = buildWindDirectionGauge(wllDeviceId, sensorOutdoor);
-					Platform.runLater(() -> {
-						if (middleFlowPane == null)
-						{
-							middleFlowPane = new FlowPane();
-							bp.centerProperty().set(middleFlowPane);
-						}
-						//wg.setPadding(new Insets(20));
-						wg.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.22));
-						wg.prefHeightProperty().bind(wg.prefWidthProperty());
-						middleFlowPane.getChildren().add(wg);
-					});
-				}
-				catch (Exception e)
-				{
-					log.error("Problem building Gauge", e);
-				}
+				
 				
 				try
 				{
@@ -221,24 +257,6 @@ public class WeatherLinkLiveGUIController
 						t1.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.25));
 						t1.prefHeightProperty().bind(t1.prefWidthProperty());
 						middleFlowPane.getChildren().add(t1);
-					});
-				}
-				catch (Exception e)
-				{
-					log.error("Problem building Gauge", e);
-				}
-				try
-				{
-					Gauge humidityOut = buildHumidityGauge(wllDeviceId, sensorOutdoor, StoredDataTypes.hum, "Outside");
-					Platform.runLater(() -> {
-						if (middleFlowPane == null)
-						{
-							middleFlowPane = new FlowPane();
-							bp.centerProperty().set(middleFlowPane);
-						}
-						humidityOut.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
-						humidityOut.prefHeightProperty().bind(humidityOut.prefWidthProperty());
-						middleFlowPane.getChildren().add(humidityOut);
 					});
 				}
 				catch (Exception e)
@@ -283,6 +301,25 @@ public class WeatherLinkLiveGUIController
 				{
 					log.error("Problem building wind Chart", e);
 				}
+				
+				try
+				{
+					Gauge humidityOut = buildHumidityGauge(wllDeviceId, sensorOutdoor, StoredDataTypes.hum, "Outside");
+					Platform.runLater(() -> {
+						if (middleFlowPane == null)
+						{
+							middleFlowPane = new FlowPane();
+							bp.centerProperty().set(middleFlowPane);
+						}
+						humidityOut.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+						humidityOut.prefHeightProperty().bind(humidityOut.prefWidthProperty());
+						middleFlowPane.getChildren().add(humidityOut);
+					});
+				}
+				catch (Exception e)
+				{
+					log.error("Problem building Gauge", e);
+				}
 			}
 			else
 			{
@@ -321,7 +358,7 @@ public class WeatherLinkLiveGUIController
 						middleFlowPane = new FlowPane();
 						bp.centerProperty().set(middleFlowPane);
 					}
-					humidityIn.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+					humidityIn.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.23));
 					humidityIn.prefHeightProperty().bind(humidityIn.prefWidthProperty());
 					middleFlowPane.getChildren().add(humidityIn);
 				});
@@ -349,7 +386,7 @@ public class WeatherLinkLiveGUIController
 			}
 			catch (Exception e)
 			{
-				log.error("Problem building wind Chart", e);
+				log.error("Problem building barometric Chart", e);
 			}
 			
 			if (outdoorSensors.size() > 0)
@@ -363,14 +400,14 @@ public class WeatherLinkLiveGUIController
 							middleFlowPane = new FlowPane();
 							bp.centerProperty().set(middleFlowPane);
 						}
-						chart.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.24));
+						chart.prefWidthProperty().bind(middleFlowPane.widthProperty().multiply(0.23));
 						chart.prefHeightProperty().bind(chart.prefWidthProperty());
 						middleFlowPane.getChildren().add(chart);
 					});
 				}
 				catch (Exception e)
 				{
-					log.error("Problem building wind Chart", e);
+					log.error("Problem building rain total Chart", e);
 				}
 				try
 				{
@@ -405,7 +442,7 @@ public class WeatherLinkLiveGUIController
 				.tickLabelLocation(TickLabelLocation.INSIDE)
 				.areaTextVisible(true).thresholdVisible(true).threshold(0.0)
 				.animated(true).skinType(SkinType.DASHBOARD)
-				.minSize(100, 100).build();
+				.minSize(75, 75).build();
 		Tooltip t = new Tooltip("Current Wind Speed");
 		Tooltip.install(gauge, t);
 
@@ -445,7 +482,7 @@ public class WeatherLinkLiveGUIController
 				.needleShape(NeedleShape.FLAT)
 				.needleType(NeedleType.VARIOMETER)
 				.needleSize(NeedleSize.THIN)
-				.minSize(100, 100).build();
+				.minSize(75, 75).build();
 
 		WeatherProperty currentWind = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last)
 				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_last));
@@ -515,7 +552,7 @@ public class WeatherLinkLiveGUIController
 		Section avgOne2 = new Section(0, 0, Color.LIGHTSLATEGREY);
 		Gauge gauge = GaugeBuilder.create()
 				.skinType(SkinType.GAUGE)
-				.minSize(100, 100)
+				.minSize(50, 50)
 				.borderPaint(Gauge.DARK_COLOR)
 				.minValue(0)
 				.maxValue(360)
@@ -609,7 +646,7 @@ public class WeatherLinkLiveGUIController
 	{
 		Gauge gauge = GaugeBuilder.create().unit(title).title("% Hum").decimals(0).minValue(0).maxValue(100)
 				.thresholdVisible(false).animated(true).skinType(SkinType.SIMPLE_SECTION)
-				.minSize(100, 100).build();
+				.minSize(75, 75).build();
 
 		WeatherProperty humidity = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, humiditySensor)
 				.orElseThrow(() -> new RuntimeException("No Data Available for " + humiditySensor));
@@ -670,7 +707,7 @@ public class WeatherLinkLiveGUIController
 				.needleColor(Color.BLACK)
 				.needleType(NeedleType.VARIOMETER)
 				.areaTextVisible(true).thresholdVisible(false)
-				.animated(true).markers(markers).markersVisible(true).skinType(SkinType.GAUGE).minSize(100, 100).build();
+				.animated(true).markers(markers).markersVisible(true).skinType(SkinType.GAUGE).minSize(75, 75).build();
 
 		WeatherProperty temp = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, sdt)
 				.orElseThrow(() -> new RuntimeException("No Data Available for " + sdt));
@@ -781,6 +818,8 @@ public class WeatherLinkLiveGUIController
 		};
 
 		periodicJobs.scheduleAtFixedRate(updateData, 0, 5, TimeUnit.MINUTES);
+		chart.setTitle("Wind Speed Avg and Gust");
+		chart.setLegendVisible(false);
 		return chart;
 	}
 	
@@ -820,6 +859,8 @@ public class WeatherLinkLiveGUIController
 		};
 
 		periodicJobs.scheduleAtFixedRate(updateData, 0, 5, TimeUnit.MINUTES);
+		chart.setTitle("Outdoor Temp");
+		chart.setLegendVisible(false);
 		return chart;
 	}
 	
@@ -881,6 +922,7 @@ public class WeatherLinkLiveGUIController
 		periodicJobs.scheduleAtFixedRate(updateData, 0, 5, TimeUnit.MINUTES);
 		chart.setTitle("Barometric Pressure");
 		chart.setLegendVisible(false);
+		chart.setMinSize(100,  100);
 		return chart;
 	}
 	
@@ -924,6 +966,7 @@ public class WeatherLinkLiveGUIController
 			LineChart lc = new LineChart<>(xAxis, yAxis);
 			lc.setCreateSymbols(false);
 			lc.setData(chartData);
+			lc.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");
 			return lc;
 		}
 		else
@@ -931,6 +974,7 @@ public class WeatherLinkLiveGUIController
 			AreaChart sac = new AreaChart<>(xAxis, yAxis);
 			sac.setCreateSymbols(false);
 			sac.setData(chartData);
+			sac.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");
 			return sac;
 		}
 	}
@@ -976,6 +1020,8 @@ public class WeatherLinkLiveGUIController
 		monthly.get().addListener(change -> updateData.run());
 		yearly.get().addListener(change -> updateData.run());
 		chart.setTitle("Rain Totals");
+		chart.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");
+		chart.setMinSize(100,  100);
 		return chart;
 	}
 	
@@ -1031,6 +1077,8 @@ public class WeatherLinkLiveGUIController
 		rateData.get().addListener(change -> updateData.run());
 		
 		chart.setTitle("Current Rain");
+		chart.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");
+		chart.setMinSize(100,  100);
 		return chart;
 	}
 	
@@ -1066,6 +1114,7 @@ public class WeatherLinkLiveGUIController
 		bc.setData(chartData);
 		bc.setLegendVisible(false);
 		bc.setVerticalGridLinesVisible(false);
+		bc.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");
 		return bc;
 	}
 

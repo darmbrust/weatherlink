@@ -7,7 +7,7 @@
 <?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.layout.BorderPane?>
 
-<BorderPane fx:id="bp" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="210.0" minWidth="210.0" prefHeight="410.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="net.sagebits.weatherlink.gui.WeatherLinkLiveGUIController">
+<BorderPane fx:id="bp" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="210.0" minWidth="210.0" prefHeight="630.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="net.sagebits.weatherlink.gui.WeatherLinkLiveGUIController">
    <top>
       <MenuBar fx:id="menuBar" BorderPane.alignment="CENTER">
         <menus>
