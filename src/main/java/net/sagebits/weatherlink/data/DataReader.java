@@ -175,7 +175,16 @@ public class DataReader
 			}
 			catch (Exception e)
 			{
-				log.error("Error during periodic data read", e);
+				log.warn("Error during periodic data read", e);
+				//Its probably busy.  Lets sleep for a bit, and give it time to recover.
+				try
+				{
+					Thread.sleep(11 *1000);  //Longer than minimum poll, + 1, so we offset from any other readers that might be reading at the same poll interval
+				} 
+				catch (InterruptedException e1)
+				{
+					//don't care
+				}
 			}
 		}, 0, pollInterval,TimeUnit.SECONDS);
 		

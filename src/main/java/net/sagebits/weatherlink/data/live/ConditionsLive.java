@@ -79,8 +79,8 @@ public class ConditionsLive
 			newValues.put(ldt, ldt.parseJson(conditionData));
 		}
 		
-		if (((Float)newValues.get(LiveDataTypes.wind_dir_last)).floatValue() == 0.0 
-				&& ((Float)newValues.get(LiveDataTypes.wind_speed_last)).floatValue() == 0.0)
+		if (((Number)newValues.get(LiveDataTypes.wind_dir_last)).floatValue() == 0.0 
+				&& ((Number)newValues.get(LiveDataTypes.wind_speed_last)).floatValue() == 0.0)
 		{
 			//Its an oddity, that when the wind speed drops to 0, they also change the direction to 0, instead of leaving it alone.
 			//Don't update our property in this case. 
