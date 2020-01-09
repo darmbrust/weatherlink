@@ -167,7 +167,7 @@
 						<hotfixBranchPrefix>hotfix/</hotfixBranchPrefix>
 						<supportBranchPrefix>support/</supportBranchPrefix>
 						<versionTagPrefix></versionTagPrefix>
-						<origin>vetsez</origin>
+						<origin>github</origin>
 					</gitFlowConfig>
 				</configuration>
 			</plugin>
