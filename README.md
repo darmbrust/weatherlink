@@ -6,7 +6,7 @@ Data logger and Desktop GUI for Davis WeatherLink
 ![Screenshot](https://user-images.githubusercontent.com/5016252/72035210-d7f8ac80-325c-11ea-8db9-30ef083a728f.png)
 
 # Running
-Requred Java 11 or newer.
+Requres Java 11 or newer.
 
 Download the weatherlink.jar file for your platform from the [release](https://github.com/darmbrust/weatherlink/releases) folder.  
 Depending on if/how you have java installed, you may be able to just double-click the jar file.
