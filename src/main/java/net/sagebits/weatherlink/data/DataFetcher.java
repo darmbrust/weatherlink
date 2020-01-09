@@ -44,33 +44,25 @@ public class DataFetcher
 	/**
 	 * May return null, otherwise, returns a WeatherProperty, that may be represent PeriodicData, or it may be further bound to LiveData. 
 	 */
-	public Optional<WeatherProperty> getDataFor(String wllDeviceId, String sensorId, StoredDataTypes sdt)
+	public WeatherProperty getDataFor(String wllDeviceId, String sensorId, StoredDataTypes sdt)
 	{
 		ConcurrentHashMap<StoredDataTypes, WeatherProperty> data = mostRecentData.computeIfAbsent(wllDeviceId + "|" + sensorId, keyAgain -> new ConcurrentHashMap<>()); 
 
 		log.debug("Data requested for {} from {} {}", sdt, wllDeviceId, sensorId);
 		
-		return Optional.ofNullable(data.computeIfAbsent(sdt, keyAgain -> {
+		return data.computeIfAbsent(sdt, keyAgain -> {
 			//we don't yet have data we are tracking for this element.  See if we have any data to populate with....
 			
 			//Try to read it from the DB
-			Optional<WeatherProperty> readData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, sdt);
+			WeatherProperty readData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, sdt);
 			
 			if (sdt.getLiveDataType() != null)
 			{
 				WeatherProperty liveProperty = LiveData.getInstance().getLiveData(wllDeviceId, sensorId).getValue(sdt.getLiveDataType());
-				if (readData.isEmpty() && !(liveProperty.asDouble().get() == (-100.0)))
-				{
-					//If the DB didn't have a data set, but we have a valid live data set, make a blank
-					readData = Optional.of(new WeatherProperty(sdt.name()));
-				}
-				if (readData.isPresent())
-				{
-					readData.get().bind(liveProperty);
-				}
+				readData.bind(liveProperty);
 			}
-			return readData.orElse(null);
-		}));
+			return readData;
+		});
 		
 	}
 	

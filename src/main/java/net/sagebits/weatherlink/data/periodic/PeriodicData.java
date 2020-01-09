@@ -273,7 +273,7 @@ public class PeriodicData
 		log.trace("Appended table {} in {}ms",  tableName, (System.currentTimeMillis() - time));
 	}
 	
-	public Optional<WeatherProperty> getLatestData(String wllDeviceId, String sensorId, StoredDataTypes dt)
+	public WeatherProperty getLatestData(String wllDeviceId, String sensorId, StoredDataTypes dt)
 	{
 		long time = System.currentTimeMillis();
 		try (PreparedStatement ps = db.prepareStatement("SELECT o.ts, " + dt.name() + " FROM " + dt.getTableName() + " o"
@@ -292,13 +292,8 @@ public class PeriodicData
 				{
 					WeatherProperty wp = new WeatherProperty(dt.name());
 					wp.set(rs.getObject(dt.name()));
-					if (rs.wasNull())
-					{
-						//Having issues with some data being null once in a while.
-						return Optional.empty();
-					}
 					wp.setTimeStamp(rs.getLong("ts"));
-					return Optional.of(wp);
+					return wp;
 				}
 			}
 		}
@@ -310,7 +305,7 @@ public class PeriodicData
 		{
 			log.trace("latest data query for {} took {}ms", dt, System.currentTimeMillis() - time);
 		}
-		return Optional.empty();
+		return new WeatherProperty(dt.name());
 	}
 	
 	public Optional<Float> getMaxForDay(String wllDeviceId, String sensorId, StoredDataTypes dt, Date day)

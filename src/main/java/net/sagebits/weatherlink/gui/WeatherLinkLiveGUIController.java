@@ -449,14 +449,14 @@ public class WeatherLinkLiveGUIController
 		Tooltip t = new Tooltip("Current Wind Speed");
 		Tooltip.install(gauge, t);
 
-		WeatherProperty currentWind = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_last));
-		WeatherProperty tenMinHi = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_10_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_hi_last_10_min));
+		WeatherProperty currentWind = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last);
+		WeatherProperty tenMinHi = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_10_min);
 
 		gauge.valueProperty().bind(currentWind.asDouble());
+		gauge.valueVisibleProperty().bind(currentWind.isValid());
 		currentWind.addListener(observable -> t.setText("Current Wind Speed " + currentWind.asDouble().get() + "\n" + new Date(currentWind.getTimeStamp()).toString()));
 
+		gauge.thresholdVisibleProperty().bind(tenMinHi.isValid());
 		tenMinHi.addListener(observable -> gauge.setThreshold(tenMinHi.asDouble().get()));
 
 		return gauge;
@@ -487,9 +487,9 @@ public class WeatherLinkLiveGUIController
 				.needleSize(NeedleSize.THIN)
 				.minSize(75, 75).build();
 
-		WeatherProperty currentWind = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_last));
+		WeatherProperty currentWind = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_last);
 		gauge.valueProperty().bind(currentWind.asDouble());
+		gauge.valueVisibleProperty().bind(currentWind.isValid());
 		
 		//Hackish way to move the speed output
 		Pane p = (Pane)gauge.getChildrenUnmodifiable().get(0);
@@ -526,12 +526,10 @@ public class WeatherLinkLiveGUIController
 			});
 			return null;
 		});
-		
-		tenMH.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_10_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_hi_last_10_min)).asDouble());
-		
-		twoMH.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_2_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_hi_last_2_min)).asDouble());
+
+		//TODO bind something to the invalid state on all these markers
+		tenMH.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_10_min).asDouble());
+		twoMH.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_hi_last_2_min).asDouble());
 		
 		twoMH.valueProperty().addListener(observable -> {
 			double twoMinMax = twoMH.valueProperty().get();
@@ -543,14 +541,9 @@ public class WeatherLinkLiveGUIController
 			gauge.setMaxValue(Math.max((twoMinMax + 5), 50));
 		});
 		
-		tenMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_10_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_avg_last_10_min)).asDouble());
-		
-		twoMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_2_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_avg_last_2_min)).asDouble());
-		
-		oneMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_1_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_speed_avg_last_1_min)).asDouble());
+		tenMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_10_min).asDouble());
+		twoMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_2_min).asDouble());
+		oneMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_1_min).asDouble());
 
 		return gauge;
 	}
@@ -595,19 +588,17 @@ public class WeatherLinkLiveGUIController
 				.animationDuration(800)
 				.sections(avgTen1, avgTen2, avgTwo1, avgTwo2, avgOne1, avgOne2)
 				.sectionsVisible(true)
+				.ledColor(Color.RED)
+				.ledVisible(false)
 				.build();
 
-		WeatherProperty windDirP = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_last)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_dir_last));
+		WeatherProperty windDirP = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_last);
+		gauge.ledVisibleProperty().bind(windDirP.isValid().not());
 		
-		WeatherProperty windDirAvgTen = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_10_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_dir_scalar_avg_last_10_min));
-		
-		WeatherProperty windDirAvgTwo = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_2_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_dir_scalar_avg_last_2_min));
-		
-		WeatherProperty windDirAvgOne = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_1_min)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + StoredDataTypes.wind_dir_scalar_avg_last_1_min));
+		//TODO figure out how to make individual sections visible / invisible
+		WeatherProperty windDirAvgTen = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_10_min);
+		WeatherProperty windDirAvgTwo = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_2_min);
+		WeatherProperty windDirAvgOne = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.wind_dir_scalar_avg_last_1_min);
 
 		gauge.valueProperty().bind(windDirP.asDouble());
 		
@@ -661,10 +652,10 @@ public class WeatherLinkLiveGUIController
 				.thresholdVisible(false).animated(true).skinType(SkinType.SIMPLE_SECTION)
 				.minSize(75, 75).build();
 
-		WeatherProperty humidity = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, humiditySensor)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + humiditySensor));
+		WeatherProperty humidity = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, humiditySensor);
 
 		gauge.valueProperty().bind(humidity.asDouble());
+		gauge.valueVisibleProperty().bind(humidity.isValid());
 
 		return gauge;
 	}
@@ -683,28 +674,25 @@ public class WeatherLinkLiveGUIController
 		markers.add(mMin);
 		markers.add(mMax);
 		
+		//TODO hide markers when invalid
 		if (heatIndex != null)
 		{
-			heatIndexM.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, heatIndex)
-					.orElseThrow(() -> new RuntimeException("No Data Available for " + heatIndex)).asDouble());
+			heatIndexM.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, heatIndex).asDouble());
 			markers.add(heatIndexM);
 		}
 		if (dewPoint != null)
 		{
-			dewPointM.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, dewPoint)
-					.orElseThrow(() -> new RuntimeException("No Data Available for " + dewPoint)).asDouble());
+			dewPointM.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, dewPoint).asDouble());
 			markers.add(dewPointM);
 		}
 		if (windChill != null)
 		{
-			windChillM.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, windChill)
-					.orElseThrow(() -> new RuntimeException("No Data Available for " + windChill)).asDouble());
+			windChillM.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, windChill).asDouble());
 			markers.add(windChillM);
 		}
 		if (tempHeatWind != null)
 		{
-			tempHeatWindM.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, tempHeatWind)
-					.orElseThrow(() -> new RuntimeException("No Data Available for " + tempHeatWind)).asDouble());
+			tempHeatWindM.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, tempHeatWind).asDouble());
 			markers.add(tempHeatWindM);
 		}
 
@@ -722,8 +710,7 @@ public class WeatherLinkLiveGUIController
 				.areaTextVisible(true).thresholdVisible(false)
 				.animated(true).markers(markers).markersVisible(true).skinType(SkinType.GAUGE).minSize(75, 75).build();
 
-		WeatherProperty temp = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, sdt)
-				.orElseThrow(() -> new RuntimeException("No Data Available for " + sdt));
+		WeatherProperty temp = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, sdt);
 		
 		//The highest the guage needs to go
 		DoubleSupplier maxCalc = () ->
@@ -780,6 +767,7 @@ public class WeatherLinkLiveGUIController
 		});
 		
 		gauge.valueProperty().bind(temp.asDouble());
+		gauge.valueVisibleProperty().bind(temp.isValid());
 
 		return gauge;
 
@@ -999,14 +987,14 @@ public class WeatherLinkLiveGUIController
 		Series<String, Double> yearRain = new Series<>();
 		
 		XYChart<CategoryAxis, NumberAxis> chart = createBarChart(dayRain, monthRain, yearRain);
-		Optional<WeatherProperty> daily = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_daily);
-		Optional<WeatherProperty> monthly = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_monthly);
-		Optional<WeatherProperty> yearly = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_year);
-		Optional<WeatherProperty> sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
+		WeatherProperty daily = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_daily);
+		WeatherProperty monthly = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_monthly);
+		WeatherProperty yearly = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_year);
+		WeatherProperty sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
 		
-		if (!sizeAdjust.get().asString().get().equals("1"))
+		if (!sizeAdjust.asString().get().equals("1"))
 		{
-			log.error("Unsupported rain transformation for {}", sizeAdjust.get().asString().get());
+			log.error("Unsupported rain transformation for {}", sizeAdjust.asString().get());
 		}
 		
 		Runnable updateData = () ->
@@ -1016,15 +1004,15 @@ public class WeatherLinkLiveGUIController
 				log.debug("Updating rain totals chart");
 				
 				dayRain.getData().clear();
-				dayRain.getData().add(new XYChart.Data<>("Day", daily.get().asDouble().divide(100.0).get()));
+				dayRain.getData().add(new XYChart.Data<>("Day", daily.asDouble().divide(100.0).get()));
 				Tooltip.install(dayRain.getData().get(0).getNode(), 
 						new Tooltip(dayRain.getData().get(0).getXValue() + ": " + dayRain.getData().get(0).getYValue().toString() + " in"));
 				monthRain.getData().clear();
-				monthRain.getData().add(new XYChart.Data<>("Month", monthly.get().asDouble().divide(100.0).get()));
+				monthRain.getData().add(new XYChart.Data<>("Month", monthly.asDouble().divide(100.0).get()));
 				Tooltip.install(monthRain.getData().get(0).getNode(), 
 						new Tooltip(monthRain.getData().get(0).getXValue() + ": " + monthRain.getData().get(0).getYValue().toString() + " in"));
 				yearRain.getData().clear();
-				yearRain.getData().add(new XYChart.Data<>("Year", yearly.get().asDouble().divide(100.0).get()));
+				yearRain.getData().add(new XYChart.Data<>("Year", yearly.asDouble().divide(100.0).get()));
 				Tooltip.install(yearRain.getData().get(0).getNode(), 
 						new Tooltip(yearRain.getData().get(0).getXValue() + ": " + yearRain.getData().get(0).getYValue().toString() + " in"));
 			}
@@ -1035,9 +1023,9 @@ public class WeatherLinkLiveGUIController
 		};
 
 		updateData.run();
-		daily.get().addListener(change -> updateData.run());
-		monthly.get().addListener(change -> updateData.run());
-		yearly.get().addListener(change -> updateData.run());
+		daily.addListener(change -> updateData.run());
+		monthly.addListener(change -> updateData.run());
+		yearly.addListener(change -> updateData.run());
 		chart.setTitle("Rain Totals");
 		chart.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");
 		chart.setMinSize(100,  100);
@@ -1054,16 +1042,16 @@ public class WeatherLinkLiveGUIController
 		
 		XYChart<CategoryAxis, NumberAxis> chart = createBarChart(fifteenMin, sixtyMin, twentyFourHours, storm, rate);
 		
-		Optional<WeatherProperty> fifteenMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_15_min);
-		Optional<WeatherProperty> sixtyMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_60_min);
-		Optional<WeatherProperty> twentyFourHourData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_24_hr);
-		Optional<WeatherProperty> stormData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm);
-		Optional<WeatherProperty> stormStartAt = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm_start_at);
-		Optional<WeatherProperty> rateData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_rate_last);
-		Optional<WeatherProperty> sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
-		if (!sizeAdjust.get().asString().get().equals("1"))
+		WeatherProperty fifteenMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_15_min);
+		WeatherProperty sixtyMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_60_min);
+		WeatherProperty twentyFourHourData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_24_hr);
+		WeatherProperty stormData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm);
+		WeatherProperty stormStartAt = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm_start_at);
+		WeatherProperty rateData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_rate_last);
+		WeatherProperty sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
+		if (!sizeAdjust.asString().get().equals("1"))
 		{
-			log.error("Unsupported rain transformation for {}", sizeAdjust.get().asString().get());
+			log.error("Unsupported rain transformation for {}", sizeAdjust.asString().get());
 		}
 		
 		Runnable updateData = () ->
@@ -1072,25 +1060,25 @@ public class WeatherLinkLiveGUIController
 			{
 				log.debug("Updating current rain chart");
 				fifteenMin.getData().clear();
-				fifteenMin.getData().add(new XYChart.Data<>("15 Min", fifteenMinData.get().asDouble().divide(100.0).get()));
+				fifteenMin.getData().add(new XYChart.Data<>("15 Min", fifteenMinData.asDouble().divide(100.0).get()));
 				Tooltip.install(fifteenMin.getData().get(0).getNode(), 
 						new Tooltip("Rain in last " + fifteenMin.getData().get(0).getXValue() + ": " + fifteenMin.getData().get(0).getYValue().toString() + " in"));
 				sixtyMin.getData().clear();
-				sixtyMin.getData().add(new XYChart.Data<>("60 Min", sixtyMinData.get().asDouble().divide(100.0).get()));
+				sixtyMin.getData().add(new XYChart.Data<>("60 Min", sixtyMinData.asDouble().divide(100.0).get()));
 				Tooltip.install(sixtyMin.getData().get(0).getNode(), 
 						new Tooltip("Rain in last " + sixtyMin.getData().get(0).getXValue() + ": " + sixtyMin.getData().get(0).getYValue().toString() + " in"));
 				twentyFourHours.getData().clear();
-				twentyFourHours.getData().add(new XYChart.Data<>("24 Hrs", twentyFourHourData.get().asDouble().divide(100.0).get()));
+				twentyFourHours.getData().add(new XYChart.Data<>("24 Hrs", twentyFourHourData.asDouble().divide(100.0).get()));
 				Tooltip.install(twentyFourHours.getData().get(0).getNode(), 
 						new Tooltip("Rain in last " + twentyFourHours.getData().get(0).getXValue() + ": " + twentyFourHours.getData().get(0).getYValue().toString() 
 								+ " in"));
 				storm.getData().clear();
-				storm.getData().add(new XYChart.Data<>("Storm", stormData.get().asDouble().divide(100.0).get()));
+				storm.getData().add(new XYChart.Data<>("Storm", stormData.asDouble().divide(100.0).get()));
 				Tooltip.install(storm.getData().get(0).getNode(), 
-						new Tooltip("Rain since " + (stormStartAt.isPresent() ? new Date((long)stormStartAt.get().asDouble().doubleValue()).toString() :"?") + ": "
+						new Tooltip("Rain since " + (stormStartAt.isValid().get() ? new Date((long)stormStartAt.asDouble().doubleValue()).toString() :"?") + ": "
 								+ storm.getData().get(0).getYValue().toString() + " in"));
 				rate.getData().clear();
-				rate.getData().add(new XYChart.Data<>("Rate", rateData.get().asDouble().divide(100.0).get()));
+				rate.getData().add(new XYChart.Data<>("Rate", rateData.asDouble().divide(100.0).get()));
 				Tooltip.install(rate.getData().get(0).getNode(), 
 						new Tooltip("Rain rate: " + rate.getData().get(0).getYValue().toString() + " in per hour"));
 			}
@@ -1102,11 +1090,11 @@ public class WeatherLinkLiveGUIController
 		
 		//TODO maybe make each of these just update its series, instead of all, have to see if its a problem
 		updateData.run();
-		fifteenMinData.get().addListener(change -> updateData.run());
-		sixtyMinData.get().addListener(change -> updateData.run());
-		twentyFourHourData.get().addListener(change -> updateData.run());
-		stormData.get().addListener(change -> updateData.run());
-		rateData.get().addListener(change -> updateData.run());
+		fifteenMinData.addListener(change -> updateData.run());
+		sixtyMinData.addListener(change -> updateData.run());
+		twentyFourHourData.addListener(change -> updateData.run());
+		stormData.addListener(change -> updateData.run());
+		rateData.addListener(change -> updateData.run());
 		
 		chart.setTitle("Current Rain");
 		chart.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");

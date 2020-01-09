@@ -4,6 +4,7 @@ import java.util.Objects;
 import org.apache.commons.math3.util.Precision;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -13,14 +14,34 @@ import javafx.collections.ObservableList;
 
 public class WeatherProperty extends SimpleObjectProperty<Object>
 {
-	private long timeStamp;
-	WeatherProperty boundTo;
 	Logger log = LogManager.getLogger(WeatherProperty.class);
+	
+	private long timeStamp;
+	private WeatherProperty boundTo;
+	private BooleanBinding isValid;
+	
+	
 	
 	public WeatherProperty(String name)
 	{
 		super(null, name);
 		timeStamp = 0;
+		isValid = new BooleanBinding()
+		{
+			{
+				bind(WeatherProperty.this);
+			}
+			@Override
+			protected boolean computeValue()
+			{
+				Object o = WeatherProperty.this.get();
+				if (o == null || o.toString().equals("null") || o.toString().equals("-100.0"))
+				{
+					return false;
+				}
+				return true;
+			}
+		};
 	}
 
 	public WeatherProperty(String name, double initial)
@@ -45,6 +66,11 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 	public long getLocalTimeStamp()
 	{
 		return timeStamp;
+	}
+	
+	public BooleanBinding isValid()
+	{
+		return isValid;
 	}
 
 	/*
@@ -129,12 +155,12 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 				protected double computeValue()
 				{
 					final Object value = WeatherProperty.this.get();
-					if (value == null)
+					if ((value != null) && !(value instanceof Number))
 					{
-						log.error("Why is value null for " + WeatherProperty.this.getName(), new Exception());
+						throw new RuntimeException("This property is not numeric");
 					}
 
-					return (value == null) ? -100.0 : Precision.round(((Number)value).doubleValue(), 1);
+					return (value == null) ? 0.0 : Precision.round((((Number)value).doubleValue() == -100.0 ? 0 : ((Number)value).doubleValue()), 1);
 				}
 	
 				@Override
