@@ -3,6 +3,8 @@ Data logger and Desktop GUI for Davis WeatherLink
 
 [![Build Status](https://travis-ci.org/darmbrust/weatherlink.svg?branch=master)](https://travis-ci.org/darmbrust/weatherlink)
 
+![Screenshot](https://user-images.githubusercontent.com/5016252/72035210-d7f8ac80-325c-11ea-8db9-30ef083a728f.png)
+
 # Running
 Requred Java 11 or newer.
 
