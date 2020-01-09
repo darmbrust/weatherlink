@@ -1,6 +1,7 @@
 package net.sagebits.weatherlink.data.periodic;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -41,9 +42,12 @@ public class PeriodicData
 	//singleton
 	private PeriodicData() throws SQLException
 	{
-		File temp = new File("weatherLinkData");
+		File homeFolder = Paths.get(System.getProperty("user.home"), "Weather Link Live GUI Data").toAbsolutePath().toFile();
+		homeFolder.mkdirs();
+		File dbFile = new File(homeFolder, "weatherLinkData");
+		log.info("Data folder: {}", dbFile.getAbsoluteFile().toString());
 		
-		db = DriverManager.getConnection("jdbc:h2:" + temp.getAbsolutePath(), "sa", "");
+		db = DriverManager.getConnection("jdbc:h2:" + dbFile.getAbsolutePath(), "sa", "");
 		
 		//One table for each of the data structures it returns.  
 		db.prepareStatement("CREATE TABLE IF NOT EXISTS iss (" 

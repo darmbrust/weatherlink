@@ -7,20 +7,32 @@
 		</Console>
 		
 		<!-- Only prints INFO and worse -->
-		<File name="FILE-NORMAL" fileName="weatherLink.log">
+		<RollingFile name="FILE-NORMAL" fileName="${sys:user.home}/Weather Link Live GUI Data/weatherLink.log" 
+			filePattern="${sys:user.home}/Weather Link Live GUI Data/weatherLink-%i.log">
 			<PatternLayout pattern = "%d{DEFAULT} %-5level [%t] %logger{2} - %msg%n"/>
 			<Filters>
 				<ThresholdFilter level="INFO"/>
 			</Filters>
-		</File>
+			<Policies>
+				<OnStartupTriggeringPolicy />
+				<SizeBasedTriggeringPolicy size="50 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="2"/>
+		</RollingFile>
 
 		<!-- Prints everything -->
-		<File name="FILE-DEBUG" fileName="weatherLinkDebug.log">
+		<RollingFile name="FILE-DEBUG" fileName="${sys:user.home}/Weather Link Live GUI Data/weatherLinkDebug.log"
+			filePattern="${sys:user.home}/Weather Link Live GUI Data/weatherLinkDebug-%i.log">
 			<PatternLayout pattern = "%d{DEFAULT} %-5level [%t] %logger{2} - %msg%n"/>
 			<Filters>
 				<ThresholdFilter level="ALL"/>
 			</Filters>
-		</File>
+			<Policies>
+				<OnStartupTriggeringPolicy />
+				<SizeBasedTriggeringPolicy size="50 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="2"/>
+		</RollingFile>
 	</Appenders>
  
 	<Loggers>
