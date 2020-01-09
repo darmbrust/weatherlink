@@ -32,6 +32,7 @@ There are lots of TODOs.... useful things I may add (pull requests welcome)
  - Add the ability to enable/disable gauges, and change their order
  - Add the ability to generate graphs from historical data with user specified options
  - Package the app as a self-contained JavaFX application
+ - Push data to user-configured upstream stores like CWOP.
 
 
 # Release Notes
