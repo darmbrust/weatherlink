@@ -16,6 +16,11 @@ java -jar weatherlink<Platform>.jar
 If you don't have java, grab the latest 11 version for your platform:
 https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot
 
+# First Run
+It should be able to auto-locate your WeatherLinkLive, so long as it is on the local network.
+
+When you first run it, things may be a bit sparse.  Data will fill in as it runs.
+
 # Data Store
 Data and logs will be stored in your user home directory under Weather Link Live GUI Data.  It maintains a data store of the data it pulls
 from your WeatherLinkLive every 10 seconds.
