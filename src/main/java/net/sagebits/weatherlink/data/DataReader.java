@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
@@ -41,7 +42,9 @@ public class DataReader
 	private final int port;
 	
 	private ScheduledExecutorService timed;
+	private ScheduledFuture<?> periodicTask;
 	private LiveDataListener ldl;
+	private int pollInterval;
 	
 	private final JsonFactory factory = new JsonFactory();
 	private final ObjectMapper mapper = new ObjectMapper(factory);
@@ -98,6 +101,7 @@ public class DataReader
 	 */
 	public void startReading(int pollInterval, boolean readLive)
 	{
+		this.pollInterval = pollInterval;
 		timed = Executors.newSingleThreadScheduledExecutor(new ThreadFactory()
 		{
 			@Override
@@ -154,31 +158,38 @@ public class DataReader
 				log.error("Problem setting up for live data", e);
 			}
 		}
-		
-		timed.scheduleAtFixedRate(() -> 
+		periodicTask = timed.scheduleAtFixedRate(() -> readData(), 0, this.pollInterval,TimeUnit.SECONDS);
+	}
+	
+	
+	private void readData()
+	{
+		try
 		{
-			//Full data read here
-			try
+			String data = readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions"));
+			log.trace("Periodic Data: {}", data);
+			
+			JsonNode rootNode = mapper.readTree(data);
+			if (!"null".equals(rootNode.get("error").asText()))
 			{
-				String data = readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions"));
-				log.trace("Periodic Data: {}", data);
-				
-				JsonNode rootNode = mapper.readTree(data);
-				if (!"null".equals(rootNode.get("error").asText()))
-				{
-					log.error("Error reported in periodic request {}", rootNode.get("error").asText());
-				}
-				
-				PeriodicData.getInstance().append(rootNode.get("data"));
-				log.debug("Periodic data updated");
-				
+				log.error("Error reported in periodic request {}", rootNode.get("error").asText());
 			}
-			catch (Exception e)
+			
+			PeriodicData.getInstance().append(rootNode.get("data"));
+			log.debug("Periodic data updated");
+		}
+		catch (Exception e)
+		{
+			log.warn("Error during periodic data read, delaying and rescheduling", e);
+			//Its probably busy.  Lets sleep for a bit, and give it time to recover.
+			//Will do this by canceling our current task, and rescheduling after a delay.
+			ScheduledExecutorService localRef = timed;
+			if (localRef != null)  //If null, shutdown requested
 			{
-				log.error("Error during periodic data read", e);
+				periodicTask.cancel(false);
+				periodicTask = localRef.scheduleAtFixedRate(() -> readData(), 11, pollInterval, TimeUnit.SECONDS);
 			}
-		}, 0, pollInterval,TimeUnit.SECONDS);
-		
+		}
 	}
 
 	public void stopReading()
@@ -188,18 +199,19 @@ public class DataReader
 			ldl.stop();
 			ldl = null;
 		}
-		if (timed != null)
+		ScheduledExecutorService localRef = timed;
+		if (localRef != null)
 		{
-			timed.shutdownNow();
+			timed = null;
+			localRef.shutdownNow();
 			try
 			{
-				timed.awaitTermination(1, TimeUnit.SECONDS);
+				localRef.awaitTermination(1, TimeUnit.SECONDS);
 			}
 			catch (InterruptedException e)
 			{
 				// don't care
 			}
-			timed = null;
 		}
 		try
 		{
