@@ -44,6 +44,6 @@ There are lots of TODOs.... useful things I may add (pull requests welcome)
 
 # Release Notes
 ```
-mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.00 -DdevelopmentVersion=1.01
+mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.01 -DdevelopmentVersion=1.02
 
 ```
