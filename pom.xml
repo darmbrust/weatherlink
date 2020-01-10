@@ -4,7 +4,7 @@
 
 	<groupId>net.sagebits.weatherlink</groupId>
 	<artifactId>weatherlink</artifactId>
-	<version>1.01</version>
+	<version>1.02</version>
 	<packaging>jar</packaging>
 
 	<name>WeatherLink Logger and GUI</name>
