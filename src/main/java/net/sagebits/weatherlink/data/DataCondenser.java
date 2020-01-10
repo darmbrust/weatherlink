@@ -10,6 +10,8 @@ import javafx.util.Pair;
 public class DataCondenser
 {
 
+	public enum MISSING_BEHAVIOR {SKIP, NAN, ZERO}
+	
 	/**
 	 * 
 	 * @param minsPerAvg
@@ -17,7 +19,7 @@ public class DataCondenser
 	 * @param zeroMissing if there is no data for an interval, should we return 0 for that interval, or skip it?
 	 * @return
 	 */
-	public static ArrayList<Pair<Long, Double>> averageEvery(int minsPerAvg, Stream<Pair<Long, Number>> dataProvider, boolean zeroMissing)
+	public static ArrayList<Pair<Long, Double>> averageEvery(int minsPerAvg, Stream<Pair<Long, Number>> dataProvider, MISSING_BEHAVIOR zeroMissing)
 	{
 		ArrayList<Pair<Long, Double>> result = new ArrayList<>();
 		
@@ -34,9 +36,10 @@ public class DataCondenser
 			}
 			while (pair.getKey() >= nextAvgInterval.get())
 			{
-				if (countAccumulated.get() > 0 || zeroMissing)
+				if (countAccumulated.get() > 0 || zeroMissing == MISSING_BEHAVIOR.ZERO || zeroMissing == MISSING_BEHAVIOR.NAN)
 				{
-					result.add(new Pair<>(nextAvgInterval.get(), (countAccumulated.get() > 0 ? (da.get() / (double)countAccumulated.get()) : 0)));
+					result.add(new Pair<>(nextAvgInterval.get(), (countAccumulated.get() > 0 ? (da.get() / (double)countAccumulated.get()) : 
+						(zeroMissing == MISSING_BEHAVIOR.ZERO ? 0 : Double.NaN))));
 				}
 				else
 				{
