@@ -1211,7 +1211,14 @@ public class WeatherLinkLiveGUIController
 
 	public void shutdown()
 	{
-		periodicJobs.shutdownNow();
-		dr.stopReading();
+		try
+		{
+			periodicJobs.shutdownNow();
+			dr.stopReading();
+		}
+		catch (Exception e)
+		{
+			log.error("Error during shutdown", e);
+		}
 	}
 }
