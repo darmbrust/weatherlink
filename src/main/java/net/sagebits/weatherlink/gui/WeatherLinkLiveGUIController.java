@@ -792,7 +792,7 @@ public class WeatherLinkLiveGUIController
 						Optional.empty(), StoredDataTypes.wind_speed_avg_last_1_min, StoredDataTypes.wind_speed_hi_last_2_min);
 				
 				//If doing this as a stacked area chart, need to subtract the series 1 data from the series 2 data
-				ArrayList<Pair<Long, Double>> avgWindSpeeds = DataCondenser.averageEvery(15,  windData.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])));
+				ArrayList<Pair<Long, Double>> avgWindSpeeds = DataCondenser.averageEvery(15,  windData.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), true);
 				ArrayList<Pair<Long, Double>> highWindSpeeds = DataCondenser.maxEvery(15,  windData.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[2])));
 
 				
@@ -840,7 +840,8 @@ public class WeatherLinkLiveGUIController
 				List<Object[]> data = PeriodicData.getInstance().getDataForRange(wllDeviceId, sensorId, startTime, 
 						Optional.empty(), StoredDataTypes.temp);
 				
-				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])));
+				//TODO change this to zero missing true, and use a chart that leaves blanks for missing data....
+				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), false);
 				
 				Platform.runLater(() ->
 				{
@@ -898,7 +899,8 @@ public class WeatherLinkLiveGUIController
 				List<Object[]> data = PeriodicData.getInstance().getDataForRange(wllDeviceId, sensorId, startTime, 
 						Optional.empty(), StoredDataTypes.bar_sea_level);
 				
-				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])));
+				//TODO change this to zero missing true, and use a chart that leaves blanks for missing data....
+				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), false);
 				
 				Platform.runLater(() ->
 				{
