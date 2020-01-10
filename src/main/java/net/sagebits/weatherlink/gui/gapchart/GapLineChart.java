@@ -52,7 +52,8 @@ public class GapLineChart<X, Y> extends LineChart<X, Y>
 					Data<X, Y> item = it.next();
 					double x = getXAxis().getDisplayPosition(item.getXValue());
 					double y = getYAxis().getDisplayPosition(getYAxis().toRealValue(getYAxis().toNumericValue(item.getYValue())));
-					if (Double.isNaN(x) || Double.isNaN(y))
+					if ((Double.isNaN(x) || Double.isNaN(y)) 
+							&& series.getData().size() > (series.getData().indexOf(item) + 1))
 					{
 						Data<X, Y> next = series.getData().get(series.getData().indexOf(item) + 1);
 						double nextX = getXAxis().getDisplayPosition(next.getXValue());
