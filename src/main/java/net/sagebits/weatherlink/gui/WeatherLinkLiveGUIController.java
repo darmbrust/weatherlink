@@ -1,6 +1,5 @@
 package net.sagebits.weatherlink.gui;
 
-import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -86,8 +85,6 @@ public class WeatherLinkLiveGUIController
 
 	@FXML private BorderPane bp;
 
-	@FXML private MenuBar menuBar;
-	
 	FlowPane middleFlowPane;
 	
 	private ArrayList<Supplier<Void>> midnightTasks = new ArrayList<>();
@@ -98,7 +95,6 @@ public class WeatherLinkLiveGUIController
 	void initialize()
 	{
 		assert bp != null : "fx:id=\"bp\" was not injected: check your FXML file 'gui.fxml'.";
-		assert menuBar != null : "fx:id=\"menuBar\" was not injected: check your FXML file 'gui.fxml'.";
 
 		log.debug("Weather Link Live Controller Initialized ");
 	}
