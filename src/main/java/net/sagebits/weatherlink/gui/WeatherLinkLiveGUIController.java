@@ -1,6 +1,5 @@
 package net.sagebits.weatherlink.gui;
 
-import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -48,7 +47,6 @@ import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.Chart;
-import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.chart.XYChart.Series;
@@ -70,6 +68,8 @@ import net.sagebits.weatherlink.data.DataReader;
 import net.sagebits.weatherlink.data.StoredDataTypes;
 import net.sagebits.weatherlink.data.WeatherProperty;
 import net.sagebits.weatherlink.data.periodic.PeriodicData;
+import net.sagebits.weatherlink.gui.gapchart.GapLineChart;
+import net.sagebits.weatherlink.gui.gapchart.GapNumberAxis;
 
 public class WeatherLinkLiveGUIController
 {
@@ -85,8 +85,6 @@ public class WeatherLinkLiveGUIController
 
 	@FXML private BorderPane bp;
 
-	@FXML private MenuBar menuBar;
-	
 	FlowPane middleFlowPane;
 	
 	private ArrayList<Supplier<Void>> midnightTasks = new ArrayList<>();
@@ -97,7 +95,6 @@ public class WeatherLinkLiveGUIController
 	void initialize()
 	{
 		assert bp != null : "fx:id=\"bp\" was not injected: check your FXML file 'gui.fxml'.";
-		assert menuBar != null : "fx:id=\"menuBar\" was not injected: check your FXML file 'gui.fxml'.";
 
 		log.debug("Weather Link Live Controller Initialized ");
 	}
@@ -117,9 +114,9 @@ public class WeatherLinkLiveGUIController
 				dr = new DataReader(Optional.empty());
 				dr.startReading(10, true);
 			}
-			catch (IOException e)
+			catch (Exception e)
 			{
-				log.error(e);
+				log.error("Error starting data reading", e);
 				// TODO dialog
 			}
 			log.debug("Data Reader init thread ends");
@@ -773,13 +770,13 @@ public class WeatherLinkLiveGUIController
 
 	}
 	
-	private XYChart<NumberAxis, NumberAxis> createWindChart(String wllDeviceId, String sensorId) throws SQLException
+	private XYChart<GapNumberAxis, GapNumberAxis> createWindChart(String wllDeviceId, String sensorId) throws SQLException
 	{
 		Series<Long, Double> series1 = new Series<>();
 		series1.setName("Average Wind Speed");
 		Series<Long, Double> series2 = new Series<>();
 		series2.setName("Peak Gust");
-		XYChart<NumberAxis, NumberAxis> chart = createHourChart(24, false, series1, series2); 
+		XYChart<GapNumberAxis, GapNumberAxis> chart = createHourChart(24, false, series1, series2); 
 		
 		Runnable updateData = () ->
 		{
@@ -792,7 +789,8 @@ public class WeatherLinkLiveGUIController
 						Optional.empty(), StoredDataTypes.wind_speed_avg_last_1_min, StoredDataTypes.wind_speed_hi_last_2_min);
 				
 				//If doing this as a stacked area chart, need to subtract the series 1 data from the series 2 data
-				ArrayList<Pair<Long, Double>> avgWindSpeeds = DataCondenser.averageEvery(15,  windData.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), true);
+				ArrayList<Pair<Long, Double>> avgWindSpeeds = DataCondenser.averageEvery(15,  windData.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), 
+						DataCondenser.MISSING_BEHAVIOR.ZERO);
 				ArrayList<Pair<Long, Double>> highWindSpeeds = DataCondenser.maxEvery(15,  windData.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[2])));
 
 				
@@ -808,8 +806,8 @@ public class WeatherLinkLiveGUIController
 					{
 						series2.getData().add(new XYChart.Data<>(point.getKey(), point.getValue()));
 					}
-					NumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
-					NumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
+					GapNumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
+					GapNumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
 				});
 			}
 			catch (Exception e)
@@ -824,12 +822,12 @@ public class WeatherLinkLiveGUIController
 		return chart;
 	}
 	
-	private XYChart<NumberAxis, NumberAxis> createTempChart(String wllDeviceId, String sensorId) throws SQLException
+	private XYChart<GapNumberAxis, GapNumberAxis> createTempChart(String wllDeviceId, String sensorId) throws SQLException
 	{
 		Series<Long, Double> series1 = new Series<>();
 		series1.setName("Outdoor Temp");
 		
-		XYChart<NumberAxis, NumberAxis> chart = createHourChart(24, true, series1); 
+		XYChart<GapNumberAxis, GapNumberAxis> chart = createHourChart(24, true, series1); 
 		
 		Runnable updateData = () ->
 		{
@@ -840,8 +838,8 @@ public class WeatherLinkLiveGUIController
 				List<Object[]> data = PeriodicData.getInstance().getDataForRange(wllDeviceId, sensorId, startTime, 
 						Optional.empty(), StoredDataTypes.temp);
 				
-				//TODO change this to zero missing true, and use a chart that leaves blanks for missing data....
-				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), false);
+				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), 
+						DataCondenser.MISSING_BEHAVIOR.NAN);
 				
 				Platform.runLater(() ->
 				{
@@ -850,8 +848,8 @@ public class WeatherLinkLiveGUIController
 					{
 						series1.getData().add(new XYChart.Data<>(point.getKey(), point.getValue()));
 					}
-					NumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
-					NumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
+					GapNumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
+					GapNumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
 				});
 			}
 			catch (Exception e)
@@ -866,13 +864,13 @@ public class WeatherLinkLiveGUIController
 		return chart;
 	}
 	
-	private XYChart<NumberAxis, NumberAxis> createBarometerChart(String wllDeviceId, String sensorId) throws SQLException
+	private XYChart<GapNumberAxis, GapNumberAxis> createBarometerChart(String wllDeviceId, String sensorId) throws SQLException
 	{
 		Series<Long, Double> series1 = new Series<>();
 		series1.setName("Barometric Pressure");
-		XYChart<NumberAxis, NumberAxis> chart = createHourChart(12, true, series1); 
-		NumberAxis.class.cast(chart.getYAxis()).setForceZeroInRange(false);
-		NumberAxis.class.cast(chart.getYAxis()).setTickLabelFormatter(new StringConverter<Number>()
+		XYChart<GapNumberAxis, GapNumberAxis> chart = createHourChart(12, true, series1); 
+		GapNumberAxis.class.cast(chart.getYAxis()).setForceZeroInRange(false);
+		GapNumberAxis.class.cast(chart.getYAxis()).setTickLabelFormatter(new StringConverter<Number>()
 		{
 			DecimalFormat df = new DecimalFormat("00.00");
 			@Override
@@ -899,8 +897,8 @@ public class WeatherLinkLiveGUIController
 				List<Object[]> data = PeriodicData.getInstance().getDataForRange(wllDeviceId, sensorId, startTime, 
 						Optional.empty(), StoredDataTypes.bar_sea_level);
 				
-				//TODO change this to zero missing true, and use a chart that leaves blanks for missing data....
-				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), false);
+				ArrayList<Pair<Long, Double>> averaged = DataCondenser.averageEvery(5,  data.stream().map(in -> new Pair<Long, Number>((Long)in[0], (Number)in[1])), 
+						DataCondenser.MISSING_BEHAVIOR.NAN);
 				
 				Platform.runLater(() ->
 				{
@@ -910,8 +908,8 @@ public class WeatherLinkLiveGUIController
 					{
 						series1.getData().add(new XYChart.Data<>(point.getKey(), point.getValue()));
 					}
-					NumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
-					NumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
+					GapNumberAxis.class.cast(chart.getXAxis()).setLowerBound(startTime);
+					GapNumberAxis.class.cast(chart.getXAxis()).setUpperBound(System.currentTimeMillis());
 				});
 			}
 			catch (Exception e)
@@ -931,9 +929,9 @@ public class WeatherLinkLiveGUIController
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@SafeVarargs
-	private XYChart<NumberAxis, NumberAxis> createHourChart(int hourCount, boolean line, Series<Long, Double> ... seriesData)
+	private XYChart<GapNumberAxis, GapNumberAxis> createHourChart(int hourCount, boolean line, Series<Long, Double> ... seriesData)
 	{
-		NumberAxis xAxis = new NumberAxis();
+		GapNumberAxis xAxis = new GapNumberAxis();
 		xAxis.setTickLabelFormatter(new StringConverter<Number>()
 		{
 			SimpleDateFormat sdf = new SimpleDateFormat("h a");
@@ -957,7 +955,7 @@ public class WeatherLinkLiveGUIController
 		xAxis.setUpperBound(System.currentTimeMillis());
 		xAxis.setLowerBound(System.currentTimeMillis() - (hourCount*60*60*1000));
 		
-		NumberAxis yAxis = new NumberAxis();
+		GapNumberAxis yAxis = new GapNumberAxis();
 		//Animation is buggy on data change
 		yAxis.setAnimated(false);
 		
@@ -966,7 +964,7 @@ public class WeatherLinkLiveGUIController
 		
 		if (line)
 		{
-			LineChart lc = new LineChart<>(xAxis, yAxis);
+			GapLineChart lc = new GapLineChart<>(xAxis, yAxis);
 			lc.setCreateSymbols(false);
 			lc.setData(chartData);
 			lc.lookup(".chart-title").setStyle("-fx-font-size: 1.2em");
@@ -1209,7 +1207,14 @@ public class WeatherLinkLiveGUIController
 
 	public void shutdown()
 	{
-		periodicJobs.shutdownNow();
-		dr.stopReading();
+		try
+		{
+			periodicJobs.shutdownNow();
+			dr.stopReading();
+		}
+		catch (Exception e)
+		{
+			log.error("Error during shutdown", e);
+		}
 	}
 }
