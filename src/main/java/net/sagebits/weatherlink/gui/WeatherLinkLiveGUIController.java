@@ -118,9 +118,9 @@ public class WeatherLinkLiveGUIController
 				dr = new DataReader(Optional.empty());
 				dr.startReading(10, true);
 			}
-			catch (IOException e)
+			catch (Exception e)
 			{
-				log.error(e);
+				log.error("Error starting data reading", e);
 				// TODO dialog
 			}
 			log.debug("Data Reader init thread ends");
