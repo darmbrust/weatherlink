@@ -56,7 +56,8 @@ public enum LiveDataTypes
 			}
 			else if (this.dataType == 'l')
 			{
-				return Long.parseLong(node.asText());
+				//Adjust timestamps properly
+				return Long.parseLong(node.asText()) * (this.ordinal() == rain_storm_start_at.ordinal() ? 1000 : 1);
 			}
 			else
 			{
