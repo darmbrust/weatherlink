@@ -50,7 +50,6 @@ import javafx.scene.chart.Chart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.chart.XYChart.Series;
-import javafx.scene.control.MenuBar;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
@@ -980,39 +979,37 @@ public class WeatherLinkLiveGUIController
 		}
 	}
 	
-	private XYChart<CategoryAxis, NumberAxis> createRainTotalsChart(String wllDeviceId, String sensorId) throws SQLException
+	private BarChart<String, Double> createRainTotalsChart(String wllDeviceId, String sensorId) throws SQLException
 	{
-		Series<String, Double> dayRain = new Series<>();
-		Series<String, Double> monthRain = new Series<>();
-		Series<String, Double> yearRain = new Series<>();
-		
-		XYChart<CategoryAxis, NumberAxis> chart = createBarChart(dayRain, monthRain, yearRain);
-		WeatherProperty daily = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_daily);
-		WeatherProperty monthly = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_monthly);
-		WeatherProperty yearly = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_year);
-		WeatherProperty sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
+		BarChart<String, Double> chart = createBarChart();
+		WeatherProperty daily = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rainfall_daily);
+		WeatherProperty monthly = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rainfall_monthly);
+		WeatherProperty yearly = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rainfall_year);
+		WeatherProperty sizeAdjust = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rain_size);
 		
 		if (!sizeAdjust.asString().get().equals("1"))
 		{
 			log.error("Unsupported rain transformation for {}", sizeAdjust.asString().get());
 		}
 		
-		Runnable updateData = () ->
+		@SuppressWarnings("unchecked") Runnable updateData = () ->
 		{
 			try
 			{
 				log.debug("Updating rain totals chart");
-				
-				dayRain.getData().clear();
+				Series<String, Double> dayRain = new Series<>();
+				Series<String, Double> monthRain = new Series<>();
+				Series<String, Double> yearRain = new Series<>();
 				dayRain.getData().add(new XYChart.Data<>("Day", daily.asDouble().divide(100.0).get()));
+				monthRain.getData().add(new XYChart.Data<>("Month", monthly.asDouble().divide(100.0).get()));
+				yearRain.getData().add(new XYChart.Data<>("Year", yearly.asDouble().divide(100.0).get()));
+				ObservableList<XYChart.Series<String, Double>> chartData = FXCollections.observableArrayList();
+				chartData.addAll(dayRain, monthRain, yearRain);
+				chart.setData(chartData);
 				Tooltip.install(dayRain.getData().get(0).getNode(), 
 						new Tooltip(dayRain.getData().get(0).getXValue() + ": " + dayRain.getData().get(0).getYValue().toString() + " in"));
-				monthRain.getData().clear();
-				monthRain.getData().add(new XYChart.Data<>("Month", monthly.asDouble().divide(100.0).get()));
 				Tooltip.install(monthRain.getData().get(0).getNode(), 
 						new Tooltip(monthRain.getData().get(0).getXValue() + ": " + monthRain.getData().get(0).getYValue().toString() + " in"));
-				yearRain.getData().clear();
-				yearRain.getData().add(new XYChart.Data<>("Year", yearly.asDouble().divide(100.0).get()));
 				Tooltip.install(yearRain.getData().get(0).getNode(), 
 						new Tooltip(yearRain.getData().get(0).getXValue() + ": " + yearRain.getData().get(0).getYValue().toString() + " in"));
 			}
@@ -1032,53 +1029,51 @@ public class WeatherLinkLiveGUIController
 		return chart;
 	}
 	
-	private XYChart<CategoryAxis, NumberAxis> createRainCurrentChart(String wllDeviceId, String sensorId) throws SQLException
+	private BarChart<String, Double> createRainCurrentChart(String wllDeviceId, String sensorId) throws SQLException
 	{
-		Series<String, Double> fifteenMin = new Series<>();
-		Series<String, Double> sixtyMin = new Series<>();
-		Series<String, Double> twentyFourHours = new Series<>();
-		Series<String, Double> storm = new Series<>();
-		Series<String, Double> rate = new Series<>();
+		BarChart<String, Double> chart = createBarChart();
 		
-		XYChart<CategoryAxis, NumberAxis> chart = createBarChart(fifteenMin, sixtyMin, twentyFourHours, storm, rate);
-		
-		WeatherProperty fifteenMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_15_min);
-		WeatherProperty sixtyMinData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_60_min);
-		WeatherProperty twentyFourHourData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_24_hr);
-		WeatherProperty stormData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm);
-		WeatherProperty stormStartAt = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_storm_start_at);
-		WeatherProperty rateData = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_rate_last);
-		WeatherProperty sizeAdjust = PeriodicData.getInstance().getLatestData(wllDeviceId, sensorId, StoredDataTypes.rain_size);
+		WeatherProperty fifteenMinData = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_15_min);
+		WeatherProperty sixtyMinData = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_60_min);
+		WeatherProperty twentyFourHourData = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rainfall_last_24_hr);
+		WeatherProperty stormData = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rain_storm);
+		WeatherProperty stormStartAt = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rain_storm_start_at);
+		WeatherProperty rateData = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rain_rate_last);
+		WeatherProperty sizeAdjust = DataFetcher.getInstance().getDataFor(wllDeviceId, sensorId, StoredDataTypes.rain_size);
 		if (!sizeAdjust.asString().get().equals("1"))
 		{
 			log.error("Unsupported rain transformation for {}", sizeAdjust.asString().get());
 		}
 		
-		Runnable updateData = () ->
+		@SuppressWarnings("unchecked") Runnable updateData = () ->
 		{
 			try
 			{
 				log.debug("Updating current rain chart");
-				fifteenMin.getData().clear();
+				Series<String, Double> fifteenMin = new Series<>();
+				Series<String, Double> sixtyMin = new Series<>();
+				Series<String, Double> twentyFourHours = new Series<>();
+				Series<String, Double> storm = new Series<>();
+				Series<String, Double> rate = new Series<>();
+				//sets and adds on bar charts are all broken, need to just set the list entirely.
 				fifteenMin.getData().add(new XYChart.Data<>("15 Min", fifteenMinData.asDouble().divide(100.0).get()));
+				sixtyMin.getData().add(new XYChart.Data<>("60 Min", sixtyMinData.asDouble().divide(100.0).get()));
+				twentyFourHours.getData().add(new XYChart.Data<>("24 Hrs", twentyFourHourData.asDouble().divide(100.0).get()));
+				storm.getData().add(new XYChart.Data<>("Storm", stormData.asDouble().divide(100.0).get()));
+				rate.getData().add(new XYChart.Data<>("Rate", rateData.asDouble().divide(100.0).get()));
+				ObservableList<XYChart.Series<String, Double>> chartData = FXCollections.observableArrayList();
+				chartData.addAll(fifteenMin, sixtyMin, twentyFourHours, storm, rate);
+				chart.setData(chartData);
 				Tooltip.install(fifteenMin.getData().get(0).getNode(), 
 						new Tooltip("Rain in last " + fifteenMin.getData().get(0).getXValue() + ": " + fifteenMin.getData().get(0).getYValue().toString() + " in"));
-				sixtyMin.getData().clear();
-				sixtyMin.getData().add(new XYChart.Data<>("60 Min", sixtyMinData.asDouble().divide(100.0).get()));
 				Tooltip.install(sixtyMin.getData().get(0).getNode(), 
 						new Tooltip("Rain in last " + sixtyMin.getData().get(0).getXValue() + ": " + sixtyMin.getData().get(0).getYValue().toString() + " in"));
-				twentyFourHours.getData().clear();
-				twentyFourHours.getData().add(new XYChart.Data<>("24 Hrs", twentyFourHourData.asDouble().divide(100.0).get()));
 				Tooltip.install(twentyFourHours.getData().get(0).getNode(), 
 						new Tooltip("Rain in last " + twentyFourHours.getData().get(0).getXValue() + ": " + twentyFourHours.getData().get(0).getYValue().toString() 
 								+ " in"));
-				storm.getData().clear();
-				storm.getData().add(new XYChart.Data<>("Storm", stormData.asDouble().divide(100.0).get()));
 				Tooltip.install(storm.getData().get(0).getNode(), 
 						new Tooltip("Rain since " + (stormStartAt.isValid().get() ? new Date((long)stormStartAt.asDouble().doubleValue()).toString() :"?") + ": "
 								+ storm.getData().get(0).getYValue().toString() + " in"));
-				rate.getData().clear();
-				rate.getData().add(new XYChart.Data<>("Rate", rateData.asDouble().divide(100.0).get()));
 				Tooltip.install(rate.getData().get(0).getNode(), 
 						new Tooltip("Rain rate: " + rate.getData().get(0).getYValue().toString() + " in per hour"));
 			}
@@ -1104,12 +1099,13 @@ public class WeatherLinkLiveGUIController
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@SafeVarargs
-	private XYChart<CategoryAxis, NumberAxis> createBarChart(Series<String, Double> ... seriesData)
+	private BarChart<String, Double> createBarChart(Series<String, Double> ... seriesData)
 	{
 		CategoryAxis xAxis = new CategoryAxis();
 		NumberAxis yAxis = new NumberAxis();
 		//Animation is buggy on data change
 		yAxis.setAnimated(false);
+		xAxis.setAnimated(false);
 		yAxis.setTickLabelFormatter(new StringConverter<Number>()
 		{
 			DecimalFormat df = new DecimalFormat("#0.00");
