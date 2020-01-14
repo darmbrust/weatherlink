@@ -33,7 +33,6 @@ Feel free to open open trackers here.
 #TODOs
 There are lots of TODOs.... useful things I may add (pull requests welcome)
 
- - Fix the menus
  - Add options for exporting data to TSV/CSV
  - Add config options for some string constants that are currently hardcoded (like "garage"
  - Add the ability to enable/disable gauges, and change their order
@@ -41,9 +40,8 @@ There are lots of TODOs.... useful things I may add (pull requests welcome)
  - Package the app as a self-contained JavaFX application
  - Push data to user-configured upstream stores like CWOP.
 
-
 # Release Notes
 ```
-mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.03 -DdevelopmentVersion=1.04
+mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.04 -DdevelopmentVersion=1.05
 
 ```
