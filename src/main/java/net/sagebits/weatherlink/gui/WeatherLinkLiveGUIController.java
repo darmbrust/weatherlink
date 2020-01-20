@@ -714,7 +714,7 @@ public class WeatherLinkLiveGUIController
 			double current = temp.asDouble().get();
 			return Math.round(Math.max(
 					Math.max((heatIndexM == null ? current : heatIndexM.getValue()), (tempHeatWindM == null ? current : tempHeatWindM.getValue())), 
-					Math.min(110.0, current + 20.0)));
+					Math.min(110.0, Math.max(current, mMax.getValue()) + 20.0)));
 		};
 		
 		//The lowest the guage needs to go
@@ -723,7 +723,7 @@ public class WeatherLinkLiveGUIController
 			double current = temp.asDouble().get();
 			return Math.round(Math.min(
 					Math.min((dewPointM == null ? current : dewPointM.getValue()),(windChillM == null ? current : windChillM.getValue())), 
-					Math.max(-40.0, current - 20.0)));
+					Math.max(-40.0, Math.min(current, mMin.getValue()) - 20.0)));
 		};
 
 		gauge.setMinValue(minCalc.getAsDouble());

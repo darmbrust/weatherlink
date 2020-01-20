@@ -47,7 +47,7 @@ public class PeriodicData
 		File dbFile = new File(homeFolder, "weatherLinkData");
 		log.info("Data folder: {}", dbFile.getAbsoluteFile().toString());
 		
-		db = DriverManager.getConnection("jdbc:h2:" + dbFile.getAbsolutePath(), "sa", "");
+		db = DriverManager.getConnection("jdbc:h2:" + dbFile.getAbsolutePath() + ";TRACE_LEVEL_FILE=0", "sa", "");
 		
 		//One table for each of the data structures it returns.  
 		db.prepareStatement("CREATE TABLE IF NOT EXISTS iss (" 
