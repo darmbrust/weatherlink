@@ -13,13 +13,15 @@ Depending on if/how you have java installed, you may be able to just double-clic
 
 If not, run with 
 ```
-java -jar weatherlink<Platform>.jar
+java -jar weatherlink<Platform>.jar [ip address]
 ```
 If you don't have java, grab the latest 11 version for your platform:
 https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot
 
 # First Run
 It should be able to auto-locate your WeatherLinkLive, so long as it is on the local network.
+
+If it fails to find your Weather Link Live, you can set the IP address as a command line parameter after the jar file name.
 
 When you first run it, things may be a bit sparse.  Data will fill in as it runs.
 
@@ -42,6 +44,6 @@ There are lots of TODOs.... useful things I may add (pull requests welcome)
 
 # Release Notes
 ```
-mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.04 -DdevelopmentVersion=1.05
+mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.05 -DdevelopmentVersion=1.06
 
 ```

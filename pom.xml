@@ -4,7 +4,7 @@
 
 	<groupId>net.sagebits.weatherlink</groupId>
 	<artifactId>weatherlink</artifactId>
-	<version>1.04</version>
+	<version>1.05</version>
 	<packaging>jar</packaging>
 
 	<name>WeatherLink Logger and GUI</name>
@@ -90,15 +90,9 @@
 			<version>11.2</version>
 		</dependency>
 		<dependency>
-			<groupId>net.straylightlabs</groupId>
+			<groupId>net.sagebits</groupId>
 			<artifactId>hola</artifactId>
-			<version>0.2.1</version>
-			<exclusions>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classic</artifactId>
-				</exclusion>
-			</exclusions>
+			<version>0.2.4-sagebits</version>
 		</dependency>
 	</dependencies>
 

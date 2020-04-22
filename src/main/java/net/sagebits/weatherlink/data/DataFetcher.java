@@ -3,7 +3,6 @@ package net.sagebits.weatherlink.data;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
@@ -48,9 +47,7 @@ public class DataFetcher
 	{
 		ConcurrentHashMap<StoredDataTypes, WeatherProperty> data = mostRecentData.computeIfAbsent(wllDeviceId + "|" + sensorId, keyAgain -> new ConcurrentHashMap<>()); 
 
-		log.debug("Data requested for {} from {} {}", sdt, wllDeviceId, sensorId);
-		
-		return data.computeIfAbsent(sdt, keyAgain -> {
+		WeatherProperty wp = data.computeIfAbsent(sdt, keyAgain -> {
 			//we don't yet have data we are tracking for this element.  See if we have any data to populate with....
 			
 			//Try to read it from the DB
@@ -63,6 +60,9 @@ public class DataFetcher
 			}
 			return readData;
 		});
+		
+		log.debug("Data requested for {} from {} {}, returning {}", sdt, wllDeviceId, sensorId, wp.get());
+		return wp;
 		
 	}
 	

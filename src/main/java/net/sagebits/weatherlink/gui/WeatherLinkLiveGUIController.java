@@ -18,8 +18,10 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Precision;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -66,6 +68,7 @@ import net.sagebits.weatherlink.data.DataFetcher;
 import net.sagebits.weatherlink.data.DataReader;
 import net.sagebits.weatherlink.data.StoredDataTypes;
 import net.sagebits.weatherlink.data.WeatherProperty;
+import net.sagebits.weatherlink.data.live.LiveData;
 import net.sagebits.weatherlink.data.periodic.PeriodicData;
 import net.sagebits.weatherlink.gui.gapchart.GapLineChart;
 import net.sagebits.weatherlink.gui.gapchart.GapNumberAxis;
@@ -89,6 +92,7 @@ public class WeatherLinkLiveGUIController
 	private ArrayList<Supplier<Void>> midnightTasks = new ArrayList<>();
 	private ScheduledExecutorService periodicJobs = Executors.newScheduledThreadPool(2, r -> new Thread(r, "Periodic GUI Jobs"));
 	
+	protected static String ip = null;
 
 	@FXML
 	void initialize()
@@ -110,7 +114,7 @@ public class WeatherLinkLiveGUIController
 			log.debug("Data Reader init thread starts");
 			try
 			{
-				dr = new DataReader(Optional.empty());
+				dr = new DataReader(Optional.ofNullable(StringUtils.isBlank(ip) ? null : ip));
 				dr.startReading(10, true);
 			}
 			catch (Exception e)
@@ -477,7 +481,7 @@ public class WeatherLinkLiveGUIController
 				.markers(dayMax, tenMH, twoMH, tenMA, twoMA, oneMA)
 				.markersVisible(true)
 				.knobType(KnobType.STANDARD)
-				.knobColor(Gauge.DARK_COLOR)
+				.knobColor(Color.RED)
 				.needleShape(NeedleShape.FLAT)
 				.needleType(NeedleType.VARIOMETER)
 				.needleSize(NeedleSize.THIN)
@@ -540,7 +544,46 @@ public class WeatherLinkLiveGUIController
 		tenMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_10_min).asDouble());
 		twoMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_2_min).asDouble());
 		oneMA.valueProperty().bind(DataFetcher.getInstance().getDataFor(wllDeviceId, sensorOutdoorId, StoredDataTypes.wind_speed_avg_last_1_min).asDouble());
+		
+		Tooltip tt = new Tooltip("Mode Pending");
+		Tooltip.install(gauge, tt);
+		final SimpleDateFormat sdf = new SimpleDateFormat("h:mm:ss");
+		
+		final Consumer<Void> updateTooltip = input -> 
+		{
+			//This will give us a pulse, every read attempt.  Don't actually care about the value.
+			if (currentWind.getTimeStamp() < (System.currentTimeMillis() - 6000))
+			{
+				//More than 6 seconds out of date, missed at least 2 live data pulses.
+				gauge.setKnobColor(Color.BLACK);
+				tt.setText("Poll Last Update " + sdf.format(new Date(currentWind.getTimeStamp())));
+			}
+			else if (currentWind.getTimeStamp() < (System.currentTimeMillis() - 30000))
+			{
+				//More than 30 seconds for any data.
+				gauge.setKnobColor(Color.RED);
+				tt.setText("Last Update " + sdf.format(new Date(currentWind.getTimeStamp())));
+			}
+			else
+			{
+				gauge.setKnobColor(Color.GREEN);
+				tt.setText("Live Last Update " + sdf.format(new Date(currentWind.getTimeStamp())));
+			}
+		};
 
+		if (dr != null)
+		{
+			dr.getLastReadAttemptTime().addListener((value, old, newv) -> 
+			{
+				updateTooltip.accept(null);
+			});
+		}
+		
+		LiveData.getInstance().getLastDataTime().addListener((value, old, newv) -> 
+		{
+			updateTooltip.accept(null);
+		});
+		
 		return gauge;
 	}
 	
@@ -1206,7 +1249,10 @@ public class WeatherLinkLiveGUIController
 		try
 		{
 			periodicJobs.shutdownNow();
-			dr.stopReading();
+			if (dr != null)
+			{
+				dr.stopReading();
+			}
 		}
 		catch (Exception e)
 		{
