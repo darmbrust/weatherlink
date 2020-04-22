@@ -551,8 +551,6 @@ public class WeatherLinkLiveGUIController
 		
 		final Consumer<Void> updateTooltip = input -> 
 		{
-			System.out.println(currentWind.getTimeStamp());
-			System.out.println(currentWind.getLocalTimeStamp());
 			//This will give us a pulse, every read attempt.  Don't actually care about the value.
 			if (currentWind.getTimeStamp() < (System.currentTimeMillis() - 6000))
 			{
