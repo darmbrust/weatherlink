@@ -56,11 +56,20 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 	}
 
 	/**
-	 * Will return the bound timestamp, if bound
+	 * Returns the bound, (live) timestamp, if present and valid and up-to-date, otherwise, returns the local (database) timestamp.
 	 */
 	public long getTimeStamp()
 	{
-		return boundTo == null ? timeStamp : boundTo.getTimeStamp();
+		if (boundTo == null || boundTo.asDouble().get() == -100.0)
+		{
+			return getLocalTimeStamp();
+		}
+		if ((this.timeStamp - 8000) > boundTo.timeStamp)
+		{
+			//We don't seem to be getting live updates, return the newer stored data. 
+			return getLocalTimeStamp();
+		}
+		return boundTo.getTimeStamp();
 	}
 
 	public long getLocalTimeStamp()
@@ -104,6 +113,10 @@ public class WeatherProperty extends SimpleObjectProperty<Object>
 		boundTo = null;
 	}
 
+	/**
+	 * Returns the bound, (live) data, if present and valid and up-to-date, otherwise, returns the local (database) data.
+	 * @see javafx.beans.property.ObjectPropertyBase#get()
+	 */
 	@Override
 	public Object get()
 	{
