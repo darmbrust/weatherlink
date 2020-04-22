@@ -180,7 +180,8 @@ public class DataReader
 		}
 		catch (Exception e)
 		{
-			log.warn("Error during periodic data read, delaying and rescheduling", e);
+			//Don't need a stack trace here
+			log.warn("Error during periodic data read, delaying and rescheduling: {}", e.toString());
 			//Its probably busy.  Lets sleep for a bit, and give it time to recover.
 			//Will do this by canceling our current task, and rescheduling after a delay.
 			ScheduledExecutorService localRef = timed;
