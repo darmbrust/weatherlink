@@ -552,7 +552,7 @@ public class WeatherLinkLiveGUIController
 		final Consumer<Void> updateTooltip = input -> 
 		{
 			//This will give us a pulse, every read attempt.  Don't actually care about the value.
-			if (currentWind.getTimeStamp() < (System.currentTimeMillis() - 6000))
+			if (currentWind.getTimeStamp() < (currentWind.getLocalTimeStamp() - 6000))
 			{
 				//More than 6 seconds out of date, missed at least 2 live data pulses.
 				gauge.setKnobColor(Color.BLACK);
