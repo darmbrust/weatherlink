@@ -10,6 +10,10 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import javafx.application.Platform;
+import javafx.beans.property.LongProperty;
+import javafx.beans.property.ReadOnlyLongProperty;
+import javafx.beans.property.SimpleLongProperty;
 
 /**
  * Instance class to hold the most current live data at any given time.  Use this to get to a set of 
@@ -25,6 +29,8 @@ public class LiveData
 	
 	//Map weatherLinkLive instances (by their did) to map of condition data (one per sensor id 'lsid') 
 	private ConcurrentHashMap<String, ConcurrentHashMap<String, ConditionsLive>> liveData_= new ConcurrentHashMap<>(2);
+	
+	private LongProperty lastLiveData = new SimpleLongProperty(0);
 	
 	private LiveData()
 	{
@@ -62,12 +68,18 @@ public class LiveData
 		return conditions.computeIfAbsent(sensorId, keyAgain -> new ConditionsLive(sensorId, null));
 	}
 	
+	public ReadOnlyLongProperty getLastDataTime()
+	{
+		return lastLiveData;
+	}
+	
 	protected void update(JsonNode data)
 	{
 		String did = Optional.ofNullable(data.get("did")).orElseThrow().asText();
 		ConcurrentHashMap<String, ConditionsLive> conditions = liveData_.computeIfAbsent(did, keyAgain -> new ConcurrentHashMap<>(2));
 		
 		final long ts = Long.parseLong(Optional.ofNullable(data.get("ts")).orElseThrow().asText()) * 1000;
+		Platform.runLater(() -> lastLiveData.set(ts));
 		
 		ArrayNode conditionsData = Optional.ofNullable((ArrayNode) data.get("conditions")).orElseThrow();
 		Iterator<JsonNode> condition = conditionsData.elements();

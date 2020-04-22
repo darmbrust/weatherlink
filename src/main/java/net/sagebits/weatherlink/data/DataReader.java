@@ -20,6 +20,10 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import javafx.application.Platform;
+import javafx.beans.property.LongProperty;
+import javafx.beans.property.ReadOnlyLongProperty;
+import javafx.beans.property.SimpleLongProperty;
 import net.sagebits.weatherlink.data.live.LiveDataListener;
 import net.sagebits.weatherlink.data.periodic.PeriodicData;
 import net.straylightlabs.hola.dns.Domain;
@@ -48,6 +52,8 @@ public class DataReader
 	
 	private final JsonFactory factory = new JsonFactory();
 	private final ObjectMapper mapper = new ObjectMapper(factory);
+	
+	private final LongProperty lastReadAttemptTime = new SimpleLongProperty(System.currentTimeMillis());
 
 	/**
 	 * @param wllAddress The IP address of the WeatherLinkLive. If not provided, attempts to auto-discover. This constructor will fail if it cannot be
@@ -148,7 +154,7 @@ public class DataReader
 					}
 					catch (Exception e)
 					{
-						log.error("Request for live data failed:", e);
+						log.error("Request for live data failed:" + e);
 					}
 					
 				}, 0, 1 ,TimeUnit.HOURS);
@@ -158,7 +164,7 @@ public class DataReader
 				log.error("Problem setting up for live data", e);
 			}
 		}
-		periodicTask = timed.scheduleAtFixedRate(() -> readData(), 0, this.pollInterval,TimeUnit.SECONDS);
+		periodicTask = timed.scheduleAtFixedRate(() -> readData(), 1, this.pollInterval,TimeUnit.SECONDS);
 	}
 	
 	
@@ -166,6 +172,7 @@ public class DataReader
 	{
 		try
 		{
+			Platform.runLater(() -> lastReadAttemptTime.set(System.currentTimeMillis()));
 			String data = readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions"));
 			log.trace("Periodic Data: {}", data);
 			
@@ -224,14 +231,19 @@ public class DataReader
 		}
 	}
 	
+	public ReadOnlyLongProperty getLastReadAttemptTime()
+	{
+		return lastReadAttemptTime;
+	}
+	
 	public static String readBytes(URL url) throws IOException
 	{
 		InputStream is = null;
 		try
 		{
 			URLConnection con = url.openConnection();
-			con.setReadTimeout(1000);
-			con.setConnectTimeout(250);
+			con.setReadTimeout(2000);
+			con.setConnectTimeout(1000);
 			con.connect();
 			is = con.getInputStream(); 
 			return new String(is.readAllBytes(), StandardCharsets.UTF_8);
