@@ -89,6 +89,7 @@ public class WeatherLinkLiveGUIController
 	private ArrayList<Supplier<Void>> midnightTasks = new ArrayList<>();
 	private ScheduledExecutorService periodicJobs = Executors.newScheduledThreadPool(2, r -> new Thread(r, "Periodic GUI Jobs"));
 	
+	protected static String ip = null;
 
 	@FXML
 	void initialize()
@@ -110,7 +111,7 @@ public class WeatherLinkLiveGUIController
 			log.debug("Data Reader init thread starts");
 			try
 			{
-				dr = new DataReader(Optional.empty());
+				dr = new DataReader(Optional.ofNullable(StringUtils.isBlank(ip) ? null : ip));
 				dr.startReading(10, true);
 			}
 			catch (Exception e)
@@ -1206,7 +1207,10 @@ public class WeatherLinkLiveGUIController
 		try
 		{
 			periodicJobs.shutdownNow();
-			dr.stopReading();
+			if (dr != null)
+			{
+				dr.stopReading();
+			}
 		}
 		catch (Exception e)
 		{
