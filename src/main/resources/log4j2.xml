@@ -14,7 +14,7 @@
 				<ThresholdFilter level="INFO"/>
 			</Filters>
 			<Policies>
-				<SizeBasedTriggeringPolicy size="50 MB" />
+				<SizeBasedTriggeringPolicy size="5 MB" />
 			</Policies>
 			<DefaultRolloverStrategy max="2"/>
 		</RollingFile>
@@ -27,7 +27,7 @@
 				<ThresholdFilter level="ALL"/>
 			</Filters>
 			<Policies>
-				<SizeBasedTriggeringPolicy size="50 MB" />
+				<SizeBasedTriggeringPolicy size="5 MB" />
 			</Policies>
 			<DefaultRolloverStrategy max="2"/>
 		</RollingFile>

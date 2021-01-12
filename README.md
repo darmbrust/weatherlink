@@ -29,6 +29,11 @@ When you first run it, things may be a bit sparse.  Data will fill in as it runs
 Data and logs will be stored in your user home directory under Weather Link Live GUI Data.  It maintains a data store of the data it pulls
 from your WeatherLinkLive every 10 seconds.
 
+Data older than 7 days will be migrated from the weatherLinkData.mv.db database to the weatherLinkDataArchive.mv.db database - and the stored
+data points will be trimmed to 1 per minute (instead of one every 10 seconds).
+
+If you do not wish to maintain the historic data, you can simply delete the archive database (when the application is running)
+
 # Issues
 Feel free to open open trackers here.
 
@@ -44,6 +49,6 @@ There are lots of TODOs.... useful things I may add (pull requests welcome)
 
 # Release Notes
 ```
-mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.06 -DdevelopmentVersion=1.07
+mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.07 -DdevelopmentVersion=1.08
 
 ```
