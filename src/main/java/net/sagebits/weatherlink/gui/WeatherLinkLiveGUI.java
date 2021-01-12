@@ -45,7 +45,7 @@ public class WeatherLinkLiveGUI extends Application
 					wllc_ = loader.getController();
 					wllc_.finishInit(mainStage_);
 					//		mainStage_.getIcons().add(Images.APPLICATION.getImage());
-					mainStage_.setTitle("Weather Link Live GUI 1.08");
+					mainStage_.setTitle("Weather Link Live GUI 1.09");
 					mainStage_.setOnCloseRequest(event -> 
 					{
 						wllc_.shutdown();
