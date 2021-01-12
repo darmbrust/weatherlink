@@ -126,6 +126,9 @@ public class WeatherLinkLiveGUIController
 		}, "data-reader-init");
 		wllFinder.start();
 		
+		//Once an hour, archive old data
+		periodicJobs.scheduleAtFixedRate(() -> PeriodicData.getInstance().archiveData(60), 1, 60, TimeUnit.MINUTES);
+		
 		Thread guiInit = new Thread(() ->
 		{
 			log.debug("Gui init thread starts");

@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import net.sagebits.weatherlink.data.DataFetcher;
+import net.sagebits.weatherlink.data.StoredDataTables;
 import net.sagebits.weatherlink.data.StoredDataTypes;
 import net.sagebits.weatherlink.data.WeatherProperty;
 
@@ -38,6 +39,7 @@ public class PeriodicData
 	private static final Logger log = LogManager.getLogger(PeriodicData.class);
 	
 	private final Connection db;
+	private final Connection dbArchive;
 	
 	//singleton
 	private PeriodicData() throws SQLException
@@ -45,95 +47,38 @@ public class PeriodicData
 		File homeFolder = Paths.get(System.getProperty("user.home"), "Weather Link Live GUI Data").toAbsolutePath().toFile();
 		homeFolder.mkdirs();
 		File dbFile = new File(homeFolder, "weatherLinkData");
+		File dbArchiveFile = new File(homeFolder, "weatherLinkDataArchive");
 		log.info("Data folder: {}", dbFile.getAbsoluteFile().toString());
 		
 		db = DriverManager.getConnection("jdbc:h2:" + dbFile.getAbsolutePath() + ";TRACE_LEVEL_FILE=0", "sa", "");
+		dbArchive = DriverManager.getConnection("jdbc:h2:" + dbArchiveFile.getAbsolutePath() + ";TRACE_LEVEL_FILE=0", "sa", "");
 		
-		//One table for each of the data structures it returns.  
-		db.prepareStatement("CREATE TABLE IF NOT EXISTS iss (" 
-				+ StoredDataTypes.did.colCreate(false, true)
-				+ StoredDataTypes.lsid.colCreate(false, true)
-				+ StoredDataTypes.ts.colCreate(false, true) 
-				+ StoredDataTypes.txid.colCreate(false, true)
-				+ StoredDataTypes.temp.colCreate() 
-				+ StoredDataTypes.hum.colCreate()
-				+ StoredDataTypes.dew_point.colCreate()
-				+ StoredDataTypes.wet_bulb.colCreate()
-				+ StoredDataTypes.heat_index.colCreate()
-				+ StoredDataTypes.wind_chill.colCreate()
-				+ StoredDataTypes.thw_index.colCreate()
-				+ StoredDataTypes.thsw_index.colCreate()
-				+ StoredDataTypes.wind_speed_last.colCreate()
-				+ StoredDataTypes.wind_dir_last.colCreate() 
-				+ StoredDataTypes.wind_speed_avg_last_1_min.colCreate() 
-				+ StoredDataTypes.wind_dir_scalar_avg_last_1_min.colCreate()
-				+ StoredDataTypes.wind_speed_avg_last_2_min.colCreate()
-				+ StoredDataTypes.wind_dir_scalar_avg_last_2_min.colCreate()
-				+ StoredDataTypes.wind_speed_hi_last_2_min.colCreate()
-				+ StoredDataTypes.wind_dir_at_hi_speed_last_2_min.colCreate()
-				+ StoredDataTypes.wind_speed_avg_last_10_min.colCreate()
-				+ StoredDataTypes.wind_dir_scalar_avg_last_10_min.colCreate()
-				+ StoredDataTypes.wind_speed_hi_last_10_min.colCreate()
-				+ StoredDataTypes.wind_dir_at_hi_speed_last_10_min.colCreate()
-				+ StoredDataTypes.rain_size.colCreate()
-				+ StoredDataTypes.rain_rate_last.colCreate()
-				+ StoredDataTypes.rain_rate_hi.colCreate()
-				+ StoredDataTypes.rainfall_last_15_min.colCreate()
-				+ StoredDataTypes.rain_rate_hi_last_15_min.colCreate()
-				+ StoredDataTypes.rainfall_last_60_min.colCreate()
-				+ StoredDataTypes.rainfall_last_24_hr.colCreate()
-				+ StoredDataTypes.rain_storm.colCreate()
-				+ StoredDataTypes.rain_storm_start_at.colCreate()
-				+ StoredDataTypes.solar_rad.colCreate()
-				+ StoredDataTypes.uv_index.colCreate()
-				+ StoredDataTypes.rx_state.colCreate()
-				+ StoredDataTypes.trans_battery_flag.colCreate()
-				+ StoredDataTypes.rainfall_daily.colCreate()
-				+ StoredDataTypes.rainfall_monthly.colCreate()
-				+ StoredDataTypes.rainfall_year.colCreate()
-				+ StoredDataTypes.rain_storm_last.colCreate()
-				+ StoredDataTypes.rain_storm_last_start_at.colCreate()
-				+ StoredDataTypes.rain_storm_last_end_at.colCreate(true)
-				+ ")").execute();
-		db.prepareStatement("CREATE INDEX IF NOT EXISTS iss_index ON iss (did, lsid, ts)").execute();
-		db.prepareStatement("CREATE TABLE IF NOT EXISTS soil (" 
-				+ StoredDataTypes.did.colCreate(false, true)
-				+ StoredDataTypes.lsid.colCreate(false, true)
-				+ StoredDataTypes.ts.colCreate(false, true) 
-				+ StoredDataTypes.txid.colCreate(false, true) 
-				+ StoredDataTypes.temp_1.colCreate()
-				+ StoredDataTypes.temp_2.colCreate()
-				+ StoredDataTypes.temp_3.colCreate()
-				+ StoredDataTypes.temp_4.colCreate()
-				+ StoredDataTypes.most_soil_1.colCreate()
-				+ StoredDataTypes.most_soil_2.colCreate()
-				+ StoredDataTypes.most_soil_3.colCreate()
-				+ StoredDataTypes.most_soil_4.colCreate()
-				+ StoredDataTypes.wet_leaf_1.colCreate()
-				+ StoredDataTypes.wet_leaf_2.colCreate()
-				+ StoredDataTypes.rx_state.colCreate()
-				+ StoredDataTypes.trans_battery_flag.colCreate(true)
-				+ ")").execute();
-		db.prepareStatement("CREATE INDEX IF NOT EXISTS soil_index ON soil (did, lsid, ts)").execute();
-		db.prepareStatement("CREATE TABLE IF NOT EXISTS wll_env ("
-				+ StoredDataTypes.did.colCreate(false, true)
-				+ StoredDataTypes.lsid.colCreate(false, true)
-				+ StoredDataTypes.ts.colCreate(false, true) 
-				+ StoredDataTypes.temp_in.colCreate()
-				+ StoredDataTypes.hum_in.colCreate()
-				+ StoredDataTypes.dew_point_in.colCreate()
-				+ StoredDataTypes.heat_index_in.colCreate(true)
-				+ ")").execute();
-		db.prepareStatement("CREATE INDEX IF NOT EXISTS wll_env_index ON wll_env (did, lsid, ts)").execute();
-		db.prepareStatement("CREATE TABLE IF NOT EXISTS wll_bar (" 
-				+ StoredDataTypes.did.colCreate(false, true)
-				+ StoredDataTypes.lsid.colCreate(false, true)
-				+ StoredDataTypes.ts.colCreate(false, true) 
-				+ StoredDataTypes.bar_sea_level.colCreate()
-				+ StoredDataTypes.bar_trend.colCreate()
-				+ StoredDataTypes.bar_absolute.colCreate(true)
-				+ ")").execute();
-		db.prepareStatement("CREATE INDEX IF NOT EXISTS wll_bar_index ON wll_bar (did, lsid, ts)").execute();
+		createTables(db);
+		createTables(dbArchive);
+	}
+	
+	private void createTables(Connection currentDb) throws SQLException 
+	{
+		for (StoredDataTables sdt : StoredDataTables.values())
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.append("CREATE TABLE IF NOT EXISTS ");
+			sb.append(sdt.getTableName());
+			sb.append(" (");
+			for (StoredDataTypes dt : sdt.getColumns())
+			{
+				sb.append(dt.colCreate());
+				sb.append(", ");
+			}
+			sb.setLength(sb.length() - 2);
+			sb.append(")");
+			currentDb.prepareStatement(sb.toString()).execute();
+		}
+		
+		currentDb.prepareStatement("CREATE INDEX IF NOT EXISTS iss_index ON iss (did, lsid, ts)").execute();
+		currentDb.prepareStatement("CREATE INDEX IF NOT EXISTS soil_index ON soil (did, lsid, ts)").execute();
+		currentDb.prepareStatement("CREATE INDEX IF NOT EXISTS wll_env_index ON wll_env (did, lsid, ts)").execute();
+		currentDb.prepareStatement("CREATE INDEX IF NOT EXISTS wll_bar_index ON wll_bar (did, lsid, ts)").execute();
 	}
 	
 	public static PeriodicData getInstance()
@@ -517,10 +462,106 @@ public class PeriodicData
 		}
 		return results;
 	}
+	
+	/**
+	 * 
+	 * @param minSecondsBeweenDataPoints allows to remove / trim the data set.
+	 * If data is recorded once every 10 seconds - Setting the parameter to a value >= 10 will cause it to archive / keep all data.
+	 * Setting it to a value higher than the record rate will cause it to skip records - keeping at most, one record per each minSecondsBetweenDataPoints 
+	 * interval.  
+	 */
+	public void archiveData(int minSecondsBeweenDataPoints)
+	{
+		log.info("Running data archive routine");
+		try
+		{
+			//archive all data older than 7 days
+			final long archiveOlderThan = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000);
+			log.debug("Archiving data older than {}", archiveOlderThan);
+			for (StoredDataTables sdt : StoredDataTables.values())
+			{
+				//Trying to use a scrollable result set, to allow me to go back by one row results in terrible performance.
+				//Rewrote the logic to copy the first result of each block, instead of the last.
+				PreparedStatement ps = db.prepareStatement("SELECT * FROM " + sdt.getTableName() + " where ts < ? order by did, lsid, ts asc");
+				ps.setLong(1, archiveOlderThan);
+				
+				ResultSet rs = ps.executeQuery();
+				int processed = 0;
+				int copied = 0;
+				long lastCopiedTS = Long.MIN_VALUE;
+				long skipTo = Long.MIN_VALUE;
+				while (rs.next())
+				{
+					processed++;
+					long rowTS = rs.getLong("ts");
+					
+					boolean idChange = false;
+					if (rowTS < lastCopiedTS)
+					{
+						//This means the did or lsid changed.  Restart index
+						idChange = true;
+						skipTo = Long.MIN_VALUE;
+					}
+					
+					if (rowTS < skipTo)
+					{
+						continue;
+					}
+					
+					copyRow(rs, sdt);
+					lastCopiedTS = idChange? Long.MIN_VALUE : rowTS;
+					copied++;
+					skipTo = rowTS + (minSecondsBeweenDataPoints * 1000);
+				}
+				
+				log.debug("Copied {} items out of {} for table {} ", copied, processed, sdt.getTableName());
+				ps.close();
+				
+				ps = db.prepareStatement("DELETE FROM " + sdt.getTableName() + " where ts < ?");
+				ps.setLong(1, archiveOlderThan);
+				ps.execute();
+				ps.close();
+				log.debug("Deleted archive data from main table");
+			}
+			
+			log.info("data archive complete");
+		}
+		catch (SQLException e)
+		{
+			log.error("Failure archiving old data", e);
+		}
+	}
+
+	private void copyRow(ResultSet rs, StoredDataTables sdt) throws SQLException
+	{
+		StringBuilder colNames = new StringBuilder();
+		StringBuilder valuePlaceholders = new StringBuilder();
+		for (StoredDataTypes c : sdt.getColumns())
+		{
+			colNames.append(c.name());
+			colNames.append(", ");
+			valuePlaceholders.append("?, ");
+		}
+		colNames.setLength(colNames.length() - 2);
+		valuePlaceholders.setLength(valuePlaceholders.length() - 2);
+		
+		
+		try (PreparedStatement ps = dbArchive.prepareStatement("INSERT INTO " + sdt.getTableName() 
+			+ " (" + colNames.toString() + ") VALUES (" + valuePlaceholders.toString() + ")"))
+		{
+			int i = 1;
+			for (StoredDataTypes c : sdt.getColumns())
+			{
+				c.intoPreparedStatement(rs, i++, ps);
+			}
+			ps.execute();
+		}
+	}
 
 	public void shutDown() throws SQLException
 	{
 		log.info("DB Shutdown requested");
+		dbArchive.close();
 		db.close();
 	}
 }
