@@ -48,6 +48,8 @@ There are lots of TODOs.... useful things I may add (pull requests welcome)
  - Push data to user-configured upstream stores like CWOP.
 
 # Release Notes
+
+Change version in WeatherLinkLiveGUI.java too
 ```
 mvn -B gitflow:release-start gitflow:release-finish -DreleaseVersion=1.08 -DdevelopmentVersion=1.09
 

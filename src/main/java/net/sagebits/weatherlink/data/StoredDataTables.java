@@ -13,7 +13,7 @@ public enum StoredDataTables
 	static
 	{
 		//Need to make sure the StoredDataTypes have been init'ed before this call.  Don't remove the call to values()
-		LogManager.getLogger().debug("creating tables if missing - {} potential columns", StoredDataTypes.values().length);
+		LogManager.getLogger(StoredDataTables.class).debug("creating tables if missing - {} potential columns", StoredDataTypes.values().length);
 	}
 	
 	private StoredDataTables(String tableName)
