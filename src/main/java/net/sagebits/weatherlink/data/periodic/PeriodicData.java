@@ -45,6 +45,7 @@ public class PeriodicData
 	private PeriodicData() throws SQLException
 	{
 		File homeFolder = Paths.get(System.getProperty("user.home"), "Weather Link Live GUI Data").toAbsolutePath().toFile();
+//		File homeFolder = Paths.get("/mnt/SSD/", "Weather Link Live GUI Data").toAbsolutePath().toFile();
 		homeFolder.mkdirs();
 		File dbFile = new File(homeFolder, "weatherLinkData");
 		File dbArchiveFile = new File(homeFolder, "weatherLinkDataArchive");
