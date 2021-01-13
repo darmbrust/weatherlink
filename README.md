@@ -18,6 +18,10 @@ java -jar weatherlink<Platform>.jar [ip address]
 If you don't have java, grab the latest 11 version for your platform:
 https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot
 
+You will want to use a x64 installer.  It should work with either the JDK or JRE.
+
+For windows, the file name will be something like: OpenJDK11U-jre_x64_windows_hotspot_11.0.9.1_1.msi
+
 # First Run
 It should be able to auto-locate your WeatherLinkLive, so long as it is on the local network.
 
