@@ -11,6 +11,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -93,6 +94,7 @@ public class WeatherLinkLiveGUIController
 	private ScheduledExecutorService periodicJobs = Executors.newScheduledThreadPool(2, r -> new Thread(r, "Periodic GUI Jobs"));
 	
 	protected static String ip = null;
+	protected static String sensorId = null;
 
 	@FXML
 	void initialize()
@@ -133,6 +135,7 @@ public class WeatherLinkLiveGUIController
 		{
 			log.debug("Gui init thread starts");
 			String wllDeviceId = null;
+			boolean hadToWait = false;
 			while (wllDeviceId == null)
 			{
 				HashSet<String> wllDeviceIds = DataFetcher.getInstance().getWeatherLinkDeviceIds();
@@ -141,6 +144,7 @@ public class WeatherLinkLiveGUIController
 					log.debug("Waiting for at least one device ID to be found");
 					try
 					{
+						hadToWait = true;
 						Thread.sleep(500);
 					}
 					catch (InterruptedException e)
@@ -151,6 +155,18 @@ public class WeatherLinkLiveGUIController
 				else
 				{
 					wllDeviceId = wllDeviceIds.iterator().next();
+					if (hadToWait) 
+					{
+						try
+						{
+							//Sleep another second, to give the initial data time to populate, otherwise, we have issues below building GUI.
+							Thread.sleep(1000);
+						}
+						catch (InterruptedException e)
+						{
+							// don't care
+						}
+					}
 				}
 			}
 			
@@ -158,7 +174,20 @@ public class WeatherLinkLiveGUIController
 			String sensorOutdoor = null;
 			if (outdoorSensors.size() > 0)
 			{
-				sensorOutdoor = outdoorSensors.iterator().next();
+				Iterator<String> sensorIterator = outdoorSensors.iterator(); 
+				sensorOutdoor = sensorIterator.next();
+				log.debug("Using sensor id '{}' for outside info", sensorOutdoor);
+				while (sensorIterator.hasNext())
+				{
+					log.debug("NOT using sensor id '{}' for outside info", sensorIterator.next());
+				}
+				
+				if (sensorId != null)
+				{
+					log.info("Overriding previous sensor id selection with value '{}' passed in on command line for outside info", sensorId);
+					sensorOutdoor = sensorId;
+				}
+				
 //				try
 //				{
 //					Gauge wg = buildWindGauge(wllDeviceId, sensorOutdoor);

@@ -14,11 +14,11 @@ import net.sagebits.weatherlink.data.live.LiveDataTypes;
  */
 public enum StoredDataTypes
 {
-	did("device id", "VARCHAR", true, StoredDataTables.ISS, StoredDataTables.SOIL, StoredDataTables.WLL_ENV, StoredDataTables.WLL_BAR),
-	lsid("logical sensor id", "VARCHAR", true, StoredDataTables.ISS, StoredDataTables.SOIL, StoredDataTables.WLL_ENV, StoredDataTables.WLL_BAR),
-	ts("timestamp", "BIGINT", true, StoredDataTables.ISS, StoredDataTables.SOIL, StoredDataTables.WLL_ENV, StoredDataTables.WLL_BAR),
+	did("device id", "VARCHAR", StoredDataTables.ISS, StoredDataTables.SOIL, StoredDataTables.WLL_ENV, StoredDataTables.WLL_BAR),
+	lsid("logical sensor id", "VARCHAR", StoredDataTables.ISS, StoredDataTables.SOIL, StoredDataTables.WLL_ENV, StoredDataTables.WLL_BAR),
+	ts("timestamp", "BIGINT", StoredDataTables.ISS, StoredDataTables.SOIL, StoredDataTables.WLL_ENV, StoredDataTables.WLL_BAR),
 	//TODO TXID is not handled proper in the SQL store nor in the live data - things will break if we receive data with more than 1 unique TXID
-	txid("transmitter id", "TINYINT", true, StoredDataTables.ISS, StoredDataTables.SOIL),
+	txid("transmitter id", "TINYINT", StoredDataTables.ISS, StoredDataTables.SOIL),
 	temp("temp", "REAL", "most recent valid temperature (°F)", StoredDataTables.ISS),
 	hum("humidity", "REAL", "most recent valid humidity (%RH)", StoredDataTables.ISS),
 	dew_point("dew point", "REAL", "most recent valid dew point (°F)", StoredDataTables.ISS),
@@ -51,13 +51,13 @@ public enum StoredDataTypes
 	solar_rad("solar radiation", "REAL", "most recent solar radiation (W/m²)", StoredDataTables.ISS),
 	uv_index("uv index", "REAL", "most recent UV index", StoredDataTables.ISS),
 	rx_state("receiver state", "TINYINT", "configured radio receiver state", StoredDataTables.ISS, StoredDataTables.SOIL),
-	trans_battery_flag("transmitter battery status flag", "BOOLEAN", "transmitter battery status flag", true, StoredDataTables.ISS, StoredDataTables.SOIL),
+	trans_battery_flag("transmitter battery status flag", "BOOLEAN", "transmitter battery status flag", StoredDataTables.ISS, StoredDataTables.SOIL),
 	rainfall_daily("rain since midnight", "REAL", "total rain count since local midnight", LiveDataTypes.rainfall_daily, StoredDataTables.ISS),
 	rainfall_monthly("rain this month", "REAL", "total rain count since first of month at local midnight", LiveDataTypes.rainfall_monthly, StoredDataTables.ISS),
 	rainfall_year("rain this year", "REAL", "total rain count since first of user-chosen month at local midnight", LiveDataTypes.rainfall_year, StoredDataTables.ISS),
 	rain_storm_last("previous rain storm", "REAL", "total rain count since last 24 hour long break in rain", StoredDataTables.ISS),  //previous - non-current rain storm
 	rain_storm_last_start_at("previous storm start time", "BIGINT", "last rainstorm start time", StoredDataTables.ISS),
-	rain_storm_last_end_at("previous storm end time", "BIGINT", "last rainstorm end time", true, StoredDataTables.ISS),
+	rain_storm_last_end_at("previous storm end time", "BIGINT", "last rainstorm end time", StoredDataTables.ISS),
 	
 	temp_1("temp 1", "REAL", "most recent valid soil temp slot 1 (°F)", StoredDataTables.SOIL), 
 	temp_2("temp 2", "REAL", "most recent valid soil temp slot 2 (°F)", StoredDataTables.SOIL),
@@ -73,11 +73,11 @@ public enum StoredDataTypes
 	temp_in("temp", "REAL", "most recent valid temperature (°F)", StoredDataTables.WLL_ENV),
 	hum_in("humidity", "REAL", "most recent valid humidity (%RH)", StoredDataTables.WLL_ENV),
 	dew_point_in("dew point", "REAL", "most recent valid dew point (°F)", StoredDataTables.WLL_ENV),
-	heat_index_in("heat index", "REAL", "most recent valid heat index (°F)", true, StoredDataTables.WLL_ENV),
+	heat_index_in("heat index", "REAL", "most recent valid heat index (°F)", StoredDataTables.WLL_ENV),
 	
 	bar_sea_level("adjusted pressure", "REAL", "most recent bar sensor reading with elevation adjustment (inches)", StoredDataTables.WLL_BAR),
 	bar_trend("barometric trend", "REAL", "current 3 hour bar trent (inches)", StoredDataTables.WLL_BAR),
-	bar_absolute("absolute pressure", "REAL", "raw bar sensor reading (inches)", true, StoredDataTables.WLL_BAR),
+	bar_absolute("absolute pressure", "REAL", "raw bar sensor reading (inches)", StoredDataTables.WLL_BAR),
 	;
 	
 	//private static final Logger log = LogManager.getLogger(StoredDataTypes.class);
@@ -86,7 +86,6 @@ public enum StoredDataTypes
 	private String doc;
 	private StoredDataTables[] tables;
 	private LiveDataTypes ldt;
-	private boolean allowNulls;
 
 	private static Hashtable<String, StoredDataTypes> lookupHash = new Hashtable<>();
 
@@ -97,34 +96,24 @@ public enum StoredDataTypes
 		}
 	}
 	
-	private StoredDataTypes(String displayName, String dataType, boolean allowNulls, StoredDataTables ... tables)
+	private StoredDataTypes(String displayName, String dataType, StoredDataTables ... tables)
 	{
-		this(displayName, dataType, displayName, allowNulls, tables);
+		this(displayName, dataType, displayName, tables);
 	}
 	
 	private StoredDataTypes(String displayName, String dataType, String doc, StoredDataTables ... tables)
 	{
-		this(displayName, dataType, doc, null, false, tables);
+		this(displayName, dataType, doc, null, tables);
 	}
 	
-	private StoredDataTypes(String displayName, String dataType, String doc, boolean allowNulls, StoredDataTables ... tables)
-	{
-		this(displayName, dataType, doc, null, allowNulls, tables);
-	}
 	
 	private StoredDataTypes(String displayName, String dataType, String doc, LiveDataTypes ldt, StoredDataTables ... tables)
-	{
-		this(displayName, dataType, doc, ldt, false, tables);
-	}
-	
-	private StoredDataTypes(String displayName, String dataType, String doc, LiveDataTypes ldt, boolean allowNulls, StoredDataTables ... tables)
 	{
 		this.displayName = displayName;
 		this.dataType = dataType;
 		this.doc = doc;
 		this.ldt = ldt;
 		this.tables = tables;
-		this.allowNulls = allowNulls;
 		for (StoredDataTables sdt : this.tables)
 		{
 			sdt.addColumn(this);
@@ -133,7 +122,7 @@ public enum StoredDataTypes
 	
 	public String colCreate()
 	{
-		return name() + " " + dataType + (allowNulls ? "" : " NOT NULL");
+		return name() + " " + dataType;
 	}
 	
 	public String getDisplayName()
@@ -248,12 +237,6 @@ public enum StoredDataTypes
 				throw new RuntimeException("Unhandled type " + dataType);
 		}
 	}
-	
-	public boolean allowNulls()
-	{
-		return allowNulls;
-	}
-	
 	
 	public static StoredDataTypes match(String name)
 	{
