@@ -133,6 +133,7 @@ public class WeatherLinkLiveGUIController
 		{
 			log.debug("Gui init thread starts");
 			String wllDeviceId = null;
+			boolean hadToWait = false;
 			while (wllDeviceId == null)
 			{
 				HashSet<String> wllDeviceIds = DataFetcher.getInstance().getWeatherLinkDeviceIds();
@@ -141,6 +142,7 @@ public class WeatherLinkLiveGUIController
 					log.debug("Waiting for at least one device ID to be found");
 					try
 					{
+						hadToWait = true;
 						Thread.sleep(500);
 					}
 					catch (InterruptedException e)
@@ -151,6 +153,18 @@ public class WeatherLinkLiveGUIController
 				else
 				{
 					wllDeviceId = wllDeviceIds.iterator().next();
+					if (hadToWait) 
+					{
+						try
+						{
+							//Sleep another second, to give the initial data time to populate, otherwise, we have issues below building GUI.
+							Thread.sleep(1000);
+						}
+						catch (InterruptedException e)
+						{
+							// don't care
+						}
+					}
 				}
 			}
 			
