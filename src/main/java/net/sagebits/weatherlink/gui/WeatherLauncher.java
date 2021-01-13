@@ -23,6 +23,12 @@ public class WeatherLauncher
 			{
 				LogManager.getLogger(WeatherLauncher.class).debug("Passed in param '{}' not an ip, ignoring.", args[0]);
 			}
+			
+			if (args.length > 1) 
+			{
+				WeatherLinkLiveGUIController.sensorId = args[1];
+				LogManager.getLogger(WeatherLauncher.class).debug("Read SensorID '{}' from command line arg", args[1]);
+			}
 		}
 		Application.launch(WeatherLinkLiveGUI.class);
 	}
