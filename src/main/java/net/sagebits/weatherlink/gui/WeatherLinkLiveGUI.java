@@ -21,6 +21,7 @@ public class WeatherLinkLiveGUI extends Application
 	private WeatherLinkLiveGUIController wllc_;
 	
 	public static Logger logger = LogManager.getLogger(WeatherLinkLiveGUI.class);
+	public static final String version = "1.10";
 
 	@Override
 	public void start(Stage primaryStage) throws Exception
@@ -45,7 +46,8 @@ public class WeatherLinkLiveGUI extends Application
 					wllc_ = loader.getController();
 					wllc_.finishInit(mainStage_);
 					//		mainStage_.getIcons().add(Images.APPLICATION.getImage());
-					mainStage_.setTitle("Weather Link Live GUI 1.10");
+					mainStage_.setTitle("Weather Link Live GUI " + version);
+					logger.info("Running version is " + version);
 					mainStage_.setOnCloseRequest(event -> 
 					{
 						wllc_.shutdown();
