@@ -273,11 +273,11 @@ public class DataReader
 	{
 		//There seems to be a bug, either with some WLL devices sending malformed headers - instead of ending in \r\n\r\n like they are supposed to, 
 		//they are sending \n\n in older firmware releases.  So, the headers aren't detected / removed by the URL library.
-		int endOfHeaderMarker = input.indexOf("\\n\\n");
+		int endOfHeaderMarker = input.indexOf("\n\n");
 		if (endOfHeaderMarker > 0 && endOfHeaderMarker < 40)
 		{
-			String result = input.substring(endOfHeaderMarker + 2);
-			log.debug("Removed '{}' from the beginning of the input, as it appears headers were still present", input.substring(0, (endOfHeaderMarker + 2)));
+			String result = input.substring(endOfHeaderMarker + "\n\n".length());
+			log.debug("Removed '{}' from the beginning of the input, as it appears headers were still present", input.substring(0, (endOfHeaderMarker + "\n\n".length())));
 			return result;
 		}
 		return input;
