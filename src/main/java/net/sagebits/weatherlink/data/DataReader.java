@@ -41,7 +41,7 @@ import net.straylightlabs.hola.sd.Service;
  */
 public class DataReader
 {
-	private final Logger log = LogManager.getLogger(DataReader.class);
+	private static final Logger log = LogManager.getLogger(DataReader.class);
 	private final String address;
 	private final int port;
 	
@@ -130,6 +130,7 @@ public class DataReader
 						log.debug("Requesting Live Data Stream");
 						String response = readBytes(new URL("http://" + address + ":" + port + "/v1/real_time?duration=10800"));
 						log.trace("Live request response: {}", response);
+						response = stripHeaders(response);
 						
 						JsonNode rootNode = mapper.readTree(response);
 						if (!"null".equals(rootNode.get("error").asText()))
@@ -175,6 +176,7 @@ public class DataReader
 			Platform.runLater(() -> lastReadAttemptTime.set(System.currentTimeMillis()));
 			String data = readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions"));
 			log.trace("Periodic Data: {}", data);
+			data = stripHeaders(data);
 			
 			JsonNode rootNode = mapper.readTree(data);
 			if (!"null".equals(rootNode.get("error").asText()))
@@ -255,6 +257,20 @@ public class DataReader
 				is.close();
 			}
 		}
+	}
+	
+	public static String stripHeaders(String input)
+	{
+		//There seems to be a bug, either with some WLL devices sending malformed headers, which the URL InputStream isn't removing, or, with 
+		//certain versions of java, which aren't properly removing headers.
+		int endOfHeaderMarker = input.indexOf("\\r\\n\\r\\n");
+		if (endOfHeaderMarker > 0)
+		{
+			String result = input.substring(endOfHeaderMarker + 4);
+			log.debug("Removed '{}' from the beginning of the input, as it appears headers were still present", input.substring(0, (endOfHeaderMarker + 4)));
+			return result;
+		}
+		return input;
 	}
 	
 	public static void main(String[] args) throws IOException, InterruptedException, SQLException
