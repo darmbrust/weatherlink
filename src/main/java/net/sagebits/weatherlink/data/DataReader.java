@@ -125,10 +125,11 @@ public class DataReader
 				ldl = new LiveDataListener(22222);
 				timed.scheduleAtFixedRate(() -> 
 				{
+					String response = null;
 					try
 					{
 						log.debug("Requesting Live Data Stream");
-						String response = readBytes(new URL("http://" + address + ":" + port + "/v1/real_time?duration=10800"));
+						response = readBytes(new URL("http://" + address + ":" + port + "/v1/real_time?duration=10800"));
 						log.trace("Live request response: {}", response);
 						response = stripHeaders(response);
 						
@@ -156,6 +157,10 @@ public class DataReader
 					catch (Exception e)
 					{
 						log.error("Request for live data failed:" + e);
+						if (response != null)
+						{
+							log.debug("Live data request that caused an exception was: {}", response);
+						}
 					}
 					
 				}, 0, 1 ,TimeUnit.HOURS);
@@ -171,10 +176,11 @@ public class DataReader
 	
 	private void readData()
 	{
+		String data = null;
 		try
 		{
 			Platform.runLater(() -> lastReadAttemptTime.set(System.currentTimeMillis()));
-			String data = readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions"));
+			data = readBytes(new URL("http://" + address + ":" + port + "/v1/current_conditions"));
 			log.trace("Periodic Data: {}", data);
 			data = stripHeaders(data);
 			
@@ -191,6 +197,10 @@ public class DataReader
 		{
 			//Don't need a stack trace here
 			log.warn("Error during periodic data read, delaying and rescheduling: {}", e.toString());
+			if (data != null)
+			{
+				log.debug("Periodic Data that caused an exception was: {}", data);
+			}
 			//Its probably busy.  Lets sleep for a bit, and give it time to recover.
 			//Will do this by canceling our current task, and rescheduling after a delay.
 			ScheduledExecutorService localRef = timed;
@@ -261,13 +271,13 @@ public class DataReader
 	
 	public static String stripHeaders(String input)
 	{
-		//There seems to be a bug, either with some WLL devices sending malformed headers, which the URL InputStream isn't removing, or, with 
-		//certain versions of java, which aren't properly removing headers.
-		int endOfHeaderMarker = input.indexOf("\\r\\n\\r\\n");
-		if (endOfHeaderMarker > 0)
+		//There seems to be a bug, either with some WLL devices sending malformed headers - instead of ending in \r\n\r\n like they are supposed to, 
+		//they are sending \n\n in older firmware releases.  So, the headers aren't detected / removed by the URL library.
+		int endOfHeaderMarker = input.indexOf("\\n\\n");
+		if (endOfHeaderMarker > 0 && endOfHeaderMarker < 40)
 		{
-			String result = input.substring(endOfHeaderMarker + 4);
-			log.debug("Removed '{}' from the beginning of the input, as it appears headers were still present", input.substring(0, (endOfHeaderMarker + 4)));
+			String result = input.substring(endOfHeaderMarker + 2);
+			log.debug("Removed '{}' from the beginning of the input, as it appears headers were still present", input.substring(0, (endOfHeaderMarker + 2)));
 			return result;
 		}
 		return input;
