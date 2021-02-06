@@ -13,7 +13,7 @@ Depending on if/how you have java installed, you may be able to just double-clic
 
 If not, run with 
 ```
-java -jar weatherlink<Platform>.jar [ip address]
+java -jar weatherlink<Platform>.jar [ip address] [sensor id]
 ```
 If you don't have java, grab the latest 11 version for your platform:
 https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot
@@ -21,6 +21,8 @@ https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot
 You will want to use a x64 installer.  It should work with either the JDK or JRE.
 
 For windows, the file name will be something like: OpenJDK11U-jre_x64_windows_hotspot_11.0.9.1_1.msi
+
+The [ip address] and [sensor id] variables are optional - and typically do not need to be specified.  
 
 # First Run
 It should be able to auto-locate your WeatherLinkLive, so long as it is on the local network.
@@ -37,6 +39,18 @@ Data older than 7 days will be migrated from the weatherLinkData.mv.db database 
 data points will be trimmed to 1 per minute (instead of one every 10 seconds).
 
 If you do not wish to maintain the historic data, you can simply delete the archive database (when the application is running)
+
+# Setting options on Windows
+If you need to specify the ip address and/or the sensor id, on windows, the easiest way to do this is to is to make a shortcut to the .jar file.
+
+Then, right click on the shortcut, click properties, and go to the Shortcut tab.
+
+In that tab, in the "Target" box, replace what is there with:
+
+javaw -jar weatherlinkWindows.jar yourWLLIp yourSensorId
+
+If you need to specify an just the sensorID, but not the IP address, you can pass garbage like 'notAnIP' as the ip address, and it will ignore it and 
+continue to autodetect the IP.
 
 # Multiple outdoor sensors / wrong sensors displayed
 
