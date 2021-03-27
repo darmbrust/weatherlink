@@ -67,8 +67,8 @@ public enum StoredDataTypes
 	moist_soil_2("soil moisture 2", "REAL", "most recent valid soil moisture slot 2 (cb)", StoredDataTables.SOIL),
 	moist_soil_3("soil moisture 3", "REAL", "most recent valid soil moisture slot 3 (cb)", StoredDataTables.SOIL),
 	moist_soil_4("soil moisture 4", "REAL", "most recent valid soil moisture slot 4 (cb)", StoredDataTables.SOIL),
-	wet_leaf_1("leaf wetness 1", "TINYINT", "most recent valid leaf wetness slot 1", StoredDataTables.SOIL),
-	wet_leaf_2("leaf wetness 2", "TINYINT", "most recent valid leaf wetness slot 2", StoredDataTables.SOIL),
+	wet_leaf_1("leaf wetness 1", "REAL", "most recent valid leaf wetness slot 1", StoredDataTables.SOIL),
+	wet_leaf_2("leaf wetness 2", "REAL", "most recent valid leaf wetness slot 2", StoredDataTables.SOIL),
 	
 	temp_in("temp", "REAL", "most recent valid temperature (°F)", StoredDataTables.WLL_ENV),
 	hum_in("humidity", "REAL", "most recent valid humidity (%RH)", StoredDataTables.WLL_ENV),
